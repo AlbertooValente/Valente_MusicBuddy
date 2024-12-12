@@ -55,20 +55,55 @@ public class DB_Manager {
         }
     }
 
-    public ArrayList<String> getAllArtisti() throws SQLException {
-        String sql = "SELECT * FROM Artista";
-        ArrayList<String> artisti = new ArrayList<>();
+    public String getArtistaByNome(String nome) throws SQLException {
+        String sql = "SELECT * FROM Artista WHERE nome = ?";
+        String artista = null;
 
-        try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
-            while (resultSet.next()) {
-                artisti.add(resultSet.getString("nome") + " - " + resultSet.getString("biografia"));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, nome);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    artista = resultSet.getString("nome") + " - " + resultSet.getString("biografia");
+                }
             }
         }
 
-        return artisti;
+        return artista;
     }
 
+    public String getAlbumByNome(String nomeAlbum) throws SQLException {
+        String sql = "SELECT * FROM Album WHERE nome = ?";
+        String album = null;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, nomeAlbum);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    album = resultSet.getString("nome") + " - " + resultSet.getString("genere") + " - " + resultSet.getDate("dataUscita");
+                }
+            }
+        }
+
+        return album;
+    }
+
+    public String getCanzoneByNome(String nomeCanzone) throws SQLException {
+        String sql = "SELECT * FROM Canzone WHERE titolo = ?";
+        String canzone = null;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, nomeCanzone);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    canzone = resultSet.getString("titolo") + " - " + resultSet.getString("genere") + " - " + resultSet.getDate("dataUscita") + " - " + resultSet.getTime("durata");
+                }
+            }
+        }
+
+        return canzone;
+    }
+
+    //temporanea
     public ArrayList<String> getAlbumsByArtista(int idArtista) throws SQLException {
         String sql = "SELECT * FROM Album WHERE idArtista = ?";
         ArrayList<String> albums = new ArrayList<>();
@@ -85,6 +120,7 @@ public class DB_Manager {
         return albums;
     }
 
+    //temporanea
     public ArrayList<String> getCanzoniByAlbum(int idAlbum) throws SQLException {
         String sql = "SELECT * FROM Canzone WHERE idAlbum = ?";
         ArrayList<String> canzoni = new ArrayList<>();
@@ -101,6 +137,7 @@ public class DB_Manager {
         return canzoni;
     }
 
+    //temporanea
     public ArrayList<String> getCanzoniByArtista(int idArtista) throws SQLException {
         String sql = "SELECT c.titolo, c.genere, c.dataUscita, c.durata " +
                 "FROM Canzone c " +
