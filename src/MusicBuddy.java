@@ -6,7 +6,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
-    private TelegramClient telegramClient = new OkHttpTelegramClient("7704256769:AAGZRn52Vf8rJKD0RX0Q-DS00h5J9744ogE");
+    private final TelegramClient telegramClient = new OkHttpTelegramClient(Config.getBotToken());
 
     @Override
     public void consume(Update update) {
@@ -21,6 +21,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 String message = "Ciao! Benvenuto su MusicBuddy!\n" +
                         "Sono qui per aiutarti a scoprire nuove canzoni, artisti e testi!" +
                         "\nCosa posso fare per te oggi?";
+
                 SendMessage sendMessage = new SendMessage(chatId, message);
 
                 try {
