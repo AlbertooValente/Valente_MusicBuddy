@@ -25,7 +25,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 SendMessage sendMessage = new SendMessage(chatId, message);
 
                 try {
-                    // Esegui il messaggio di benvenuto
+                    //invia il messaggio di benvenuto
                     telegramClient.execute(sendMessage);
                 } catch (TelegramApiException e) {
                     e.printStackTrace();

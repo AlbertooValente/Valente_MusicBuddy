@@ -5,23 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35532f0a-0a7c-439c-b52f-fa6b2eddd58d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/libraries/jsoup.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/libraries/telegram_telegrambots_client.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/libraries/telegram_telegrambots_longpolling.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/Valente_MusicBuddy.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/src/DB_Manager.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/src/Main.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/src/MusicBuddy.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy/src/WebScraper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/MusicBuddy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/MusicBuddy.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraper.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -127,6 +113,7 @@
       <workItem from="1734017101335" duration="6032000" />
       <workItem from="1734037498175" duration="214000" />
       <workItem from="1734037754909" duration="1418000" />
+      <workItem from="1734102185506" duration="7599000" />
     </task>
     <servers />
   </component>
