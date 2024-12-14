@@ -4,11 +4,11 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
 
-public class WebScraper {
-    //funzione per fare lo scraping di canzoni, album e artisti su wikipedia
-    public static void cercaSuWikipedia(String query, String tipoRicerca, String artista) throws IOException {
+public class WebScraperWikipedia {
+    //funzione per fare lo scraping di un artista (cantante, band) su wikipedia
+    public static String cercaArtista(String artista, String tipoRicerca) throws IOException {
         String baseUrl = "https://it.wikipedia.org";
-        String url = baseUrl + "/wiki/" + query.replace(" ", "_");
+        String url = baseUrl + "/wiki/" + artista.replace(" ", "_");
 
         Document doc = Jsoup.connect(url)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -17,7 +17,7 @@ public class WebScraper {
         //controlla se la pagina è una disambiguazione
         if (isDisambiguationPage(doc)) {
             //trova il link più rilevante per il tipo di ricerca (artista, canzone, album)
-            String relevantLink = findRelevantLink(doc, tipoRicerca, artista);
+            String relevantLink = findRelevantLink(doc, tipoRicerca);
 
             if (relevantLink != null) {
                 //riprova lo scraping con il link specifico
@@ -25,40 +25,33 @@ public class WebScraper {
                         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
                         .get();
             } else {
-                System.out.println("Nessun link rilevante trovato per " + tipoRicerca);
-                return;
+                return "Nessun link rilevante trovato!";
             }
         }
 
         //ottiene il contenuto introduttivo fino alla sezione "Biografia"
-        Elements elementi = doc.select("div.mw-parser-output").first().children(); //ottiene tutti i figli della sezione principale
+        Elements elementi = doc.select("div.mw-content-ltr.mw-parser-output").first().children(); //ottiene tutti i figli della sezione principale
 
         StringBuilder contenutoIntroduttivo = new StringBuilder();
 
         //raccoglie dati specifici per artista/canzone/album
         for (Element elemento : elementi) {
-            if (tipoRicerca.equals("artista")) {
-                //se è un artista, fa lo scraping fino alla sezione "Biografia"
-                if (elemento.tagName().equals("div") && elemento.hasClass("mw-heading2") && elemento.text().toLowerCase().contains("biografia")) {
-                    break;
-                } else if (elemento.tagName().equals("p")) {
-                    String testoParagrafo = rimuoviNumeriTraParentesi(elemento.text());
-                    contenutoIntroduttivo.append(testoParagrafo).append("\n");
-                }
-            } else {
-                //per album o canzone, raccoglie paragrafi relativi a descrizione, anno, ecc.
-                if (elemento.tagName().equals("p")) {
-                    String testoParagrafo = rimuoviNumeriTraParentesi(elemento.text());
-                    contenutoIntroduttivo.append(testoParagrafo).append("\n");
-                }
+            //fa lo scraping fino alla sezione "Biografia"
+            if (elemento.tagName().equals("div") && elemento.hasClass("mw-heading2") && (elemento.text().toLowerCase().contains("biografia")
+            || elemento.text().toLowerCase().contains("storia"))) {
+                break;
+            }
+            else if (elemento.tagName().equals("p")) {
+                String testoParagrafo = rimuoviNumeriTraParentesi(elemento.text());
+                contenutoIntroduttivo.append(testoParagrafo).append("\n");
             }
         }
 
         //stampa il contenuto introduttivo
         if (contenutoIntroduttivo.length() > 0) {
-            System.out.println("Risultato:\n" + contenutoIntroduttivo.toString());
+            return contenutoIntroduttivo.toString();
         } else {
-            System.out.println("Non è stato trovato un contenuto introduttivo nella pagina.");
+            return "Non sono state trovate informazioni relative a " + artista;
         }
     }
 
@@ -77,7 +70,7 @@ public class WebScraper {
     }
 
     //funzione per trovare il link più rilevante nella pagina di disambiguazione
-    private static String findRelevantLink(Document doc, String tipoRicerca, String artista) {
+    private static String findRelevantLink(Document doc, String tipoRicerca) {
         Elements links = doc.select("div.mw-parser-output a");
 
         String ricercaTitolo = "";
@@ -104,14 +97,6 @@ public class WebScraper {
 
     // TEST
     public static void main(String[] args) throws IOException {
-        cercaSuWikipedia("Adele", "artista", "");
-
-        /*
-
-        cercaSuWikipedia("Wish you were here", "canzone", "Pink Floyd");
-        System.out.println("\n\n\n");
-        cercaSuWikipedia("Wish you were here", "album", "Pink Floyd");
-
-        */
+        System.out.println(cercaArtista("Adele", "artista"));
     }
 }
