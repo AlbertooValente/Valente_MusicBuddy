@@ -6,7 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="35532f0a-0a7c-439c-b52f-fa6b2eddd58d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraperWikipedia.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Valente_MusicBuddy.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Valente_MusicBuddy.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/DB_Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/DB_Manager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/WebScraperWikipedia.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraperWikipedia.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +116,7 @@
       <workItem from="1734037498175" duration="214000" />
       <workItem from="1734037754909" duration="1418000" />
       <workItem from="1734102185506" duration="8723000" />
-      <workItem from="1734159570495" duration="1665000" />
+      <workItem from="1734159570495" duration="2848000" />
     </task>
     <servers />
   </component>
@@ -125,16 +127,5 @@
     <ignored-roots>
       <path value="$PROJECT_DIR$/.." />
     </ignored-roots>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/WebScraperWikipedia.java</url>
-          <line>43</line>
-          <option name="timeStamp" value="7" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

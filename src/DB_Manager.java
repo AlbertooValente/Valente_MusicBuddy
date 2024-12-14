@@ -4,7 +4,7 @@ import java.util.ArrayList;
 public class DB_Manager {
     private static final String url = "jdbc:mysql://localhost:3306/musicbuddy";
     private static final String user = "root";
-    private static final String password = "password";
+    private static final String password = "";
 
     private Connection connection;
 
@@ -12,13 +12,12 @@ public class DB_Manager {
         connection = DriverManager.getConnection(url, user, password);
     }
 
-    public void insertArtista(String nome, String biografia, Date dataNascita) throws SQLException {
-        String sql = "INSERT INTO Artista (nome, biografia, dataNascita) VALUES (?, ?, ?)";
+    public void insertArtista(String nome, String biografia) throws SQLException {
+        String sql = "INSERT INTO Artista (nome, biografia) VALUES (?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nome);
             statement.setString(2, biografia);
-            statement.setDate(3, dataNascita);
             statement.executeUpdate();
         }
     }

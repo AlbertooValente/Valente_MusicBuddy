@@ -3,10 +3,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.sql.SQLException;
 
 public class WebScraperWikipedia {
     //funzione per fare lo scraping di un artista (cantante, band) su wikipedia
-    public static String cercaArtista(String artista, String tipoRicerca) throws IOException {
+    public static void cercaArtista(DB_Manager dbManager, String artista, String tipoRicerca) throws IOException, SQLException {
         String baseUrl = "https://it.wikipedia.org";
         String url = baseUrl + "/wiki/" + artista.replace(" ", "_");
 
@@ -24,9 +25,10 @@ public class WebScraperWikipedia {
                 doc = Jsoup.connect(baseUrl + relevantLink)
                         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
                         .get();
-            } else {
-                return "Nessun link rilevante trovato!";
             }
+            /*
+            MESSAGGIO ERRORE ???
+             */
         }
 
         //ottiene il contenuto introduttivo fino alla sezione "Biografia"
@@ -49,10 +51,11 @@ public class WebScraperWikipedia {
 
         //stampa il contenuto introduttivo
         if (contenutoIntroduttivo.length() > 0) {
-            return contenutoIntroduttivo.toString();
-        } else {
-            return "Non sono state trovate informazioni relative a " + artista;
+            dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
         }
+        /*
+        MESSAGGIO ERRORE ???
+         */
     }
 
     //funzione per rimuovere informazioni aggiuntive di wikipedia
@@ -97,6 +100,14 @@ public class WebScraperWikipedia {
 
     // TEST
     public static void main(String[] args) throws IOException {
-        System.out.println(cercaArtista("Adele", "artista"));
+        try {
+            DB_Manager dbManager = new DB_Manager();
+
+            cercaArtista(dbManager, "Queen", "artista");
+
+            dbManager.close();
+        } catch (IOException | SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
