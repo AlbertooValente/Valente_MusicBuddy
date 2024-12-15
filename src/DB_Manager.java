@@ -161,7 +161,7 @@ public class DB_Manager {
         return canzoni;
     }
 
-    // Close the connection
+    //chiude la connessione
     public void close() throws SQLException {
         if (connection != null && !connection.isClosed()) {
             connection.close();
