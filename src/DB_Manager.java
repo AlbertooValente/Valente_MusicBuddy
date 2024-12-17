@@ -22,17 +22,15 @@ public class DB_Manager {
         }
     }
 
-    public void insertAlbum(String nome, Date dataUscita, String genere, int idArtista, String linkSpotify, String linkYoutube, String infoAlbum) throws SQLException {
-        String sql = "INSERT INTO Album (nome, dataUscita, genere, idArtista, linkSpotify, linkYoutube, infoAlbum) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    public void insertAlbum(String nome, Date dataUscita, String genere, int idArtista, String infoAlbum) throws SQLException {
+        String sql = "INSERT INTO Album (nome, dataUscita, genere, idArtista, infoAlbum) VALUES (?, ?, ?, ?, ?,)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nome);
             statement.setDate(2, dataUscita);
             statement.setString(3, genere);
             statement.setInt(4, idArtista);
-            statement.setString(5, linkSpotify);
-            statement.setString(6, linkYoutube);
-            statement.setString(7, infoAlbum);
+            statement.setString(5, infoAlbum);
             statement.executeUpdate();
         }
     }

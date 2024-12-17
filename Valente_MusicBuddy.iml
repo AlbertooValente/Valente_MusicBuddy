@@ -11,5 +11,6 @@
     <orderEntry type="library" name="telegram.telegrambots.longpolling" level="project" />
     <orderEntry type="library" name="jsoup" level="project" />
     <orderEntry type="library" name="mysql.connector.java" level="project" />
+    <orderEntry type="library" name="google.code.gson" level="project" />
   </component>
 </module>
