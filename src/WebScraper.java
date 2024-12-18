@@ -2,13 +2,15 @@ import com.google.gson.JsonObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import java.io.IOException;
 
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
 
-    //funzione per fare lo scraping di un artista (cantante, band) su wikipedia
+    //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
     public static void cercaArtista(String artista, String tipoRicerca) throws IOException {
         String url = baseUrlWiki + "/wiki/" + artista.replace(" ", "_");
 
@@ -42,7 +44,7 @@ public class WebScraper {
         }
     }
 
-    //funzione per fare lo scraping degli album dell'artista su wikipedia
+    //metodo per fare lo scraping degli album dell'artista su wikipedia
     private static void cercaAlbum(Document doc, String artista) throws IOException {
         //trova il div che contiene la sezione "Album in studio" o "Discografia"
         Element divContent = doc.selectFirst("div.mw-content-ltr.mw-parser-output");
@@ -91,7 +93,7 @@ public class WebScraper {
         }
     }
 
-    //funzione per ottenere i dettagli di un album
+    //metodo per ottenere i dettagli di un album
     private static void cercaDettagliAlbum(String albumUrl, String nomeAlbum, String artista) throws IOException {
         Document albumDoc = Jsoup.connect(albumUrl)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -167,48 +169,80 @@ public class WebScraper {
     }
 
     private static void cercaInfoCanzone(String titolo, String artista) throws IOException {
-        // Costruisce la query per cercare la canzone
         String query = titolo.replace(" ", "%20") + "%20" + artista.replace(" ", "%20");
-
-        // Cerca la canzone su Genius
         JsonObject searchResult = APIGenius.cercaCanzoneGenius(query);
 
-        // Verifica se la ricerca ha prodotto risultati
         if (searchResult == null) {
             System.out.println("Nessun risultato trovato per la canzone: " + titolo);
             return;
         }
 
-        // Prendi la prima hit dal risultato della ricerca
+        //prende il primo elemento hit dal risultato della ricerca (hit sono vari risultati possibili della ricerca)
         JsonObject firstHit = searchResult.getAsJsonObject("response")
                 .getAsJsonArray("hits")
                 .get(0).getAsJsonObject()
                 .getAsJsonObject("result");
 
-        // Ottieni l'API path per i dettagli della canzone
+        //ottiene l'API path per ottenere i dettagli della canzone
         String apiPath = firstHit.get("api_path").getAsString();
-
-        // Ottieni i dettagli della canzone
         String[] dettagli = APIGenius.getDettagli(apiPath);
 
-        // Verifica i dati ottenuti
-        String spotifyUrl = dettagli[0];
-        String youtubeUrl = dettagli[1];
-        String lyricsPath = dettagli[2];
-        String descrizione = dettagli[3];
+        String spotifyLink = (dettagli[0] != null ? dettagli[0] : "Non disponibile");
+        String youtubeLink = (dettagli[1] != null ? dettagli[1] : "Non disponibile");
+        String lyricsURL = (dettagli[2] != null ? "https://genius.com" + dettagli[2] : "Non disponibile");
+        String descrizione = (dettagli[3] != null ? dettagli[3] : "Non disponibile");
 
-        System.out.println("Titolo canzone: " + titolo);
-        System.out.println("Spotify URL: " + (spotifyUrl != null ? spotifyUrl : "Non disponibile"));
-        System.out.println("YouTube URL: " + (youtubeUrl != null ? youtubeUrl : "Non disponibile"));
-        System.out.println("Lyrics Path: " + (lyricsPath != null ? "https://genius.com" + lyricsPath : "Non disponibile"));
-        System.out.println("Descrizione: " + (descrizione != null ? descrizione : "Non disponibile"));
+        String testo = (!lyricsURL.equals("Non disponibile") ? scrapeTesto(lyricsURL) : "Non disponibile");
+
+        if(testo.equals("")){
+            testo = "Non disponibile";
+        }
 
 
         // Inserimento nel database (da implementare)
-        // dbManager.insertCanzone(titolo, artista, spotifyUrl, youtubeUrl);
+        // dbManager.insertCanzone(titolo, testo, , spotifyUrl, youtubeUrl);
     }
 
-    //funzione che permette di ottenere l'introduzione della pagina wikipedia desiderata
+    //metodo per fare lo scraping del testo della canzone
+    private static String scrapeTesto(String lyricsURL) throws IOException {
+        Document doc = Jsoup.connect(lyricsURL)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                .get();
+
+        StringBuilder testo = new StringBuilder();
+
+        //seleziona tutti gli elementi che contengono il testo della canzone
+        Elements lyricElements = doc.select("[data-lyrics-container=\"true\"]");
+
+        for (Element el : lyricElements) {
+            //analizza ricorsivamente ogni nodo all'interno dell'elemento che contiene il testo
+            analizzaNodi(el, testo);
+            testo.append("\n");
+        }
+
+        return testo.toString().trim();
+    }
+
+    //metodo ricorsivo per analizzare i nodi
+    private static void analizzaNodi(Node node, StringBuilder testo) {
+        if (node instanceof TextNode) {     //se è un nodo di tipo testuale puro, si aggiunge il contenuto al testo
+            testo.append(((TextNode) node).text());
+        } else if (node instanceof Element) {
+            Element element = (Element) node;
+
+            if (element.tagName().equals("br")) {   //se è un elemento <br> viene aggiunto un "\n"
+                testo.append("\n");
+            } else {
+                //analizza i figli ricorsivamente, in questo modo viene letta tutta la struttura completa dell'html complesso
+                //senza tralasciare alcun elemento
+                for (Node child : element.childNodes()) {
+                    analizzaNodi(child, testo);
+                }
+            }
+        }
+    }
+
+    //metodo che permette di ottenere l'introduzione della pagina wikipedia desiderata
     private static String getContenutoIntroduttivo(Document doc){
         //ottiene il contenuto introduttivo fino alla sezione "biografia" oppure "storia"
         Elements elementi = doc.select("div.mw-content-ltr.mw-parser-output").first().children(); //ottiene tutti i figli della sezione principale
@@ -230,21 +264,21 @@ public class WebScraper {
         return contenuto.toString();
     }
 
-    //funzione per rimuovere informazioni aggiuntive di wikipedia
+    //metodo per rimuovere informazioni aggiuntive di wikipedia
     private static String rimuoviNumeriTraParentesi(String testo) {
         testo = testo.replaceAll("\\[.*?\\]", "");  //rimuove i numeri tra parentesi quadre
         testo = testo.replaceAll("AFI:\\s*;\\s*", "");  //rimuove le pronunce in alfabeto fonetico internazionale
         return testo;
     }
 
-    //funzione per verificare se la pagina è una disambiguazione
+    //metodo per verificare se la pagina è una disambiguazione
     private static boolean isDisambiguationPage(Document doc) {
         return !doc.select("div.avviso-disambigua").isEmpty() ||
                 !doc.select("table.disambiguation").isEmpty() ||
                 doc.title().toLowerCase().contains("disambiguazione");
     }
 
-    //funzione per trovare il link più rilevante nella pagina di disambiguazione
+    //metodo per trovare il link più rilevante nella pagina di disambiguazione
     private static String findRelevantLink(Document doc, String tipoRicerca) {
         Elements links = doc.select("div.mw-parser-output a");
 

@@ -66,6 +66,8 @@ public class DB_Manager {
         }
     }
 
+    //manca la relazione canzone e artista
+
     //MODIFICARE TUTTO
 
     public String getArtistaByNome(String nome) throws SQLException {
