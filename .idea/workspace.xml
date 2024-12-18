@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="35532f0a-0a7c-439c-b52f-fa6b2eddd58d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/DB_Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/DB_Manager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/APIGenius.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/APIGenius.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraper.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -52,7 +52,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Alberto/Desktop/SCUOLA/5BII/TPSIT/Valente_MusicBuddy&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Alberto/Desktop/scraper&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -138,6 +138,10 @@
       <workItem from="1734448069879" duration="139000" />
       <workItem from="1734448244668" duration="3557000" />
       <workItem from="1734504862726" duration="1656000" />
+      <workItem from="1734506540750" duration="237000" />
+      <workItem from="1734506970113" duration="763000" />
+      <workItem from="1734519063120" duration="1582000" />
+      <workItem from="1734520722012" duration="368000" />
     </task>
     <servers />
   </component>

@@ -1,15 +1,15 @@
+import com.google.gson.JsonObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
-import java.sql.SQLException;
 
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
 
     //funzione per fare lo scraping di un artista (cantante, band) su wikipedia
-    public static void cercaArtista(String artista, String tipoRicerca) throws IOException, SQLException {
+    public static void cercaArtista(String artista, String tipoRicerca) throws IOException {
         String url = baseUrlWiki + "/wiki/" + artista.replace(" ", "_");
 
         Document doc = Jsoup.connect(url)
@@ -43,7 +43,7 @@ public class WebScraper {
     }
 
     //funzione per fare lo scraping degli album dell'artista su wikipedia
-    private static void cercaAlbum(Document doc, String artista) throws IOException, SQLException {
+    private static void cercaAlbum(Document doc, String artista) throws IOException {
         //trova il div che contiene la sezione "Album in studio" o "Discografia"
         Element divContent = doc.selectFirst("div.mw-content-ltr.mw-parser-output");
 
@@ -85,14 +85,14 @@ public class WebScraper {
                     //chiama la funzione per cercare alcuni dettagli dell'album (data di uscita e genere)
                     System.out.println("ALBUM: " + nomeAlbum);
                     cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
-                    System.out.println("\n");
+                    System.out.println("\n\n");
                 }
             }
         }
     }
 
     //funzione per ottenere i dettagli di un album
-    private static void cercaDettagliAlbum(String albumUrl, String nomeAlbum, String artista) throws IOException, SQLException {
+    private static void cercaDettagliAlbum(String albumUrl, String nomeAlbum, String artista) throws IOException {
         Document albumDoc = Jsoup.connect(albumUrl)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
                 .get();
@@ -143,6 +143,9 @@ public class WebScraper {
 
                 for (Element traccia : tracce) {
                     System.out.println("Titolo traccia: " + traccia.text());
+
+                    cercaInfoCanzone(traccia.text(), artista);
+                    System.out.println("\n");
                 }
             }
             else if (albumList.tagName().equals("dl")) {
@@ -161,14 +164,48 @@ public class WebScraper {
             //passa all'elemento successivo
             albumList = albumList.nextElementSibling();
         }
-
-
-        //cercaCanzoneGenius(nomeAlbum, artista);
     }
 
-    private static void cercaCanzoneGenius(String nomeAlbum, String artista) throws IOException, SQLException {
+    private static void cercaInfoCanzone(String titolo, String artista) throws IOException {
+        // Costruisce la query per cercare la canzone
+        String query = titolo.replace(" ", "%20") + "%20" + artista.replace(" ", "%20");
+
+        // Cerca la canzone su Genius
+        JsonObject searchResult = APIGenius.cercaCanzoneGenius(query);
+
+        // Verifica se la ricerca ha prodotto risultati
+        if (searchResult == null) {
+            System.out.println("Nessun risultato trovato per la canzone: " + titolo);
+            return;
+        }
+
+        // Prendi la prima hit dal risultato della ricerca
+        JsonObject firstHit = searchResult.getAsJsonObject("response")
+                .getAsJsonArray("hits")
+                .get(0).getAsJsonObject()
+                .getAsJsonObject("result");
+
+        // Ottieni l'API path per i dettagli della canzone
+        String apiPath = firstHit.get("api_path").getAsString();
+
+        // Ottieni i dettagli della canzone
+        String[] dettagli = APIGenius.getDettagli(apiPath);
+
+        // Verifica i dati ottenuti
+        String spotifyUrl = dettagli[0];
+        String youtubeUrl = dettagli[1];
+        String lyricsPath = dettagli[2];
+        String descrizione = dettagli[3];
+
+        System.out.println("Titolo canzone: " + titolo);
+        System.out.println("Spotify URL: " + (spotifyUrl != null ? spotifyUrl : "Non disponibile"));
+        System.out.println("YouTube URL: " + (youtubeUrl != null ? youtubeUrl : "Non disponibile"));
+        System.out.println("Lyrics Path: " + (lyricsPath != null ? "https://genius.com" + lyricsPath : "Non disponibile"));
+        System.out.println("Descrizione: " + (descrizione != null ? descrizione : "Non disponibile"));
 
 
+        // Inserimento nel database (da implementare)
+        // dbManager.insertCanzone(titolo, artista, spotifyUrl, youtubeUrl);
     }
 
     //funzione che permette di ottenere l'introduzione della pagina wikipedia desiderata
@@ -242,7 +279,7 @@ public class WebScraper {
             cercaArtista("Pink Floyd", "artista");
 
             //dbManager.close();
-        } catch (IOException | SQLException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

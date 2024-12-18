@@ -1,5 +1,4 @@
 import com.google.gson.*;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -7,94 +6,119 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class APIGenius {
-    private static final String accessToken = Config.getAPIGeniusTOken();
+    private static final String accessToken = Config.getAPIGeniusTOken();   //mi prendo il token dal file
+    private static final HttpClient client = HttpClient.newHttpClient();
 
-    public static void main(String[] args) {
+    //metodo per effettuare una ricerca su Genius per ottenere l'apipath della canzone
+    public static JsonObject cercaCanzoneGenius(String urlRichiesta) {
         try {
-            // Passaggio 1: Esegui la ricerca su Genius per "time pink floyd"
-            JsonObject searchResult = searchSong("time%20pink%20floyd");
+            String url = "https://api.genius.com/search?q=" + urlRichiesta;
 
-            // Passaggio 2: Prendi la prima hit dal risultato
-            JsonObject firstHit = searchResult.getAsJsonObject("response")
-                    .getAsJsonArray("hits")
-                    .get(0).getAsJsonObject()
-                    .getAsJsonObject("result");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .build();
 
-            // Ottieni api_path dalla hit
-            String apiPath = firstHit.get("api_path").getAsString();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            // Passaggio 3: Ottieni i dettagli della canzone usando l'api_path
-            JsonObject songDetails = getSongDetails(apiPath);
+            if (response.statusCode() == 200) {
+                return JsonParser.parseString(response.body()).getAsJsonObject();
+            } else {
+                System.out.println("Errore durante la ricerca su Genius. Codice di stato: " + response.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Errore durante la ricerca su Genius: " + e.getMessage());
+        }
 
-            // Passaggio 4: Estrai le informazioni richieste (media, Spotify e YouTube)
-            JsonArray media = songDetails.getAsJsonObject("response")
-                    .getAsJsonObject("song")
-                    .getAsJsonArray("media");
+        return null;
+    }
 
-            // Cicla attraverso i media e cerca provider Spotify e YouTube
-            for (int i = 0; i < media.size(); i++) {
-                JsonObject mediaItem = media.get(i).getAsJsonObject();
-                String provider = mediaItem.get("provider").getAsString();
+    //metodo per ottenere i dettagli della canzone
+    public static String[] getDettagli(String apiPath) {
+        try {
+            String url = "https://api.genius.com" + apiPath;
 
-                if (provider.equals("spotify")) {
-                    System.out.println("Spotify URL: " + mediaItem.get("url").getAsString());
-                } else if (provider.equals("youtube")) {
-                    System.out.println("YouTube URL: " + mediaItem.get("url").getAsString());
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonObject dettagli = JsonParser.parseString(response.body()).getAsJsonObject();
+
+                //estrai l'elemento media contenente i link di spotify e youtube
+                JsonArray media = dettagli.getAsJsonObject("response")
+                        .getAsJsonObject("song")
+                        .getAsJsonArray("media");
+
+                String spotifyUrl = null;
+                String youtubeUrl = null;
+
+                for (int i = 0; i < media.size(); i++) {
+                    JsonObject mediaObject = media.get(i).getAsJsonObject();
+                    String provider = mediaObject.get("provider").getAsString();
+
+                    if (provider.equals("spotify")) {
+                        spotifyUrl = mediaObject.get("url").getAsString();
+                    } else if (provider.equals("youtube")) {
+                        youtubeUrl = mediaObject.get("url").getAsString();
+                    }
+                }
+
+                //estrae il path per i testi
+                String lyricsPath = dettagli.getAsJsonObject("response")
+                        .getAsJsonObject("song")
+                        .get("path").getAsString();
+
+                //estrae la descrizione
+                JsonObject descriptionDom = dettagli.getAsJsonObject("response")
+                        .getAsJsonObject("song")
+                        .getAsJsonObject("description")
+                        .getAsJsonObject("dom");    //il nodo dom contiene tutta la descrizione
+
+                String descrizione = estraiTestoDescrizione(descriptionDom);
+
+                // Restituisce i dati estratti
+                return new String[]{spotifyUrl, youtubeUrl, lyricsPath, descrizione};
+            } else {
+                System.err.println("Errore durante il recupero dei dettagli della canzone. Codice di stato: " + response.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Errore durante il recupero dei dettagli della canzone: " + e.getMessage());
+        }
+
+        // Restituisci un array con valori null in caso di errore
+        return new String[]{null, null};
+    }
+
+    //metodo per estrarre solo il testo della descrizione (togliendo tutti i riferimenti)
+    private static String estraiTestoDescrizione(JsonObject domNode) {
+        StringBuilder text = new StringBuilder();
+
+        //controlla il tipo di nodo
+        if (domNode.has("tag")) {
+            if (domNode.has("children")) {
+                JsonArray children = domNode.getAsJsonArray("children");
+
+                for (JsonElement child : children) {
+                    if (child.isJsonPrimitive()) {
+                        text.append(child.getAsString());   //aggiunge il testo
+                    } else if (child.isJsonObject()) {
+                        text.append(estraiTestoDescrizione(child.getAsJsonObject()));   //ricorsione per nodi figli
+                    }
                 }
             }
 
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            //aggiunge una nuova riga se il tag è un blocco (ad esempio "p")
+            String tag = domNode.get("tag").getAsString();
+
+            if ("p".equals(tag)) {
+                text.append("\n\n");    //separa i vari paragrafi con una riga vuota
+            }
         }
-    }
 
-    // Funzione per eseguire una ricerca
-    public static JsonObject searchSong(String query) throws IOException, InterruptedException {
-        // URL di ricerca su Genius
-        String url = "https://api.genius.com/search?q=" + query;
-
-        // Crea un client HTTP
-        HttpClient client = HttpClient.newHttpClient();
-
-        // Crea la richiesta HTTP (GET) per la ricerca
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)  // Usa il token di accesso
-                .build();
-
-        // Invia la richiesta e ottieni la risposta
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // Se la richiesta è riuscita, restituire il risultato come JsonObject
-        if (response.statusCode() == 200) {
-            return JsonParser.parseString(response.body()).getAsJsonObject();
-        } else {
-            throw new IOException("Request failed with status code: " + response.statusCode());
-        }
-    }
-
-    // Funzione per ottenere i dettagli della canzone
-    public static JsonObject getSongDetails(String apiPath) throws IOException, InterruptedException {
-        // URL per ottenere i dettagli della canzone
-        String url = "https://api.genius.com" + apiPath;
-
-        // Crea un client HTTP
-        HttpClient client = HttpClient.newHttpClient();
-
-        // Crea la richiesta HTTP (GET) per i dettagli della canzone
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)  // Usa il token di accesso
-                .build();
-
-        // Invia la richiesta e ottieni la risposta
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // Se la richiesta è riuscita, restituire il risultato come JsonObject
-        if (response.statusCode() == 200) {
-            return JsonParser.parseString(response.body()).getAsJsonObject();
-        } else {
-            throw new IOException("Request failed with status code: " + response.statusCode());
-        }
+        return text.toString().trim();
     }
 }
