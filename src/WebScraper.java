@@ -6,6 +6,9 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
@@ -36,7 +39,6 @@ public class WebScraper {
         //stampa il contenuto introduttivo
         if (contenutoIntroduttivo.length() > 0) {
             //dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
-
             cercaAlbum(doc, artista);
         }
         else{
@@ -101,7 +103,7 @@ public class WebScraper {
 
         //cerca la data completa di uscita
         Elements dataElement = albumDoc.select("tr:contains(Pubblicazione) td");
-        String dataUscita = dataElement.isEmpty() ? "Data non trovata" : dataElement.first().text();
+        String dataUscita = dataElement.isEmpty() ? "Data non trovata" : estraiData(dataElement.first().text());
 
         //cerca il genere musicale
         Elements genereElement = albumDoc.select("tr:contains(Genere) td");
@@ -111,7 +113,7 @@ public class WebScraper {
         String info = getContenutoIntroduttivo(albumDoc);
 
         //inserisci i dettagli dell'album nel database
-        //dbManager.insertAlbum(nomeAlbum, , genere, dbManager.gerArtistaByNome(artista), info);
+        //dbManager.insertAlbum(nomeAlbum, dataUscita, genere, dbManager.getArtistaByNome(artista), info);
 
 
         //CERCA ELENCO TRACCE
@@ -144,10 +146,7 @@ public class WebScraper {
                 Elements tracce = albumList.select("li i");
 
                 for (Element traccia : tracce) {
-                    System.out.println("Titolo traccia: " + traccia.text());
-
                     cercaInfoCanzone(traccia.text(), artista);
-                    System.out.println("\n");
                 }
             }
             else if (albumList.tagName().equals("dl")) {
@@ -190,7 +189,8 @@ public class WebScraper {
         String spotifyLink = (dettagli[0] != null ? dettagli[0] : "Non disponibile");
         String youtubeLink = (dettagli[1] != null ? dettagli[1] : "Non disponibile");
         String lyricsURL = (dettagli[2] != null ? "https://genius.com" + dettagli[2] : "Non disponibile");
-        String descrizione = (dettagli[3] != null ? dettagli[3] : "Non disponibile");
+        String data = (dettagli[3] != null ? dettagli[3] : "Non disponibile");
+        String descrizione = (dettagli[4] != null ? dettagli[4] : "Non disponibile");
 
         String testo = (!lyricsURL.equals("Non disponibile") ? scrapeTesto(lyricsURL) : "Non disponibile");
 
@@ -200,7 +200,65 @@ public class WebScraper {
 
 
         // Inserimento nel database (da implementare)
-        // dbManager.insertCanzone(titolo, testo, , spotifyUrl, youtubeUrl);
+        // dbManager.insertCanzone(titolo, testo, data, , , dbManager.getAlbumByNomeAndArtista(nomeAlbum,artista), spotifyLink, youtubeLink, descrizione);
+    }
+
+    //metodo che permette di ottenere l'introduzione della pagina wikipedia desiderata
+    private static String getContenutoIntroduttivo(Document doc){
+        //ottiene il contenuto introduttivo fino alla sezione "biografia" oppure "storia"
+        Elements elementi = doc.select("div.mw-content-ltr.mw-parser-output").first().children(); //ottiene tutti i figli della sezione principale
+
+        StringBuilder contenuto = new StringBuilder();
+
+        //raccoglie dati specifici per artista/canzone/album
+        for (Element elemento : elementi) {
+            //fa lo scraping fino alla sezione "Biografia"
+            if (elemento.tagName().equals("div") && elemento.hasClass("mw-heading2")) {
+                break;
+            }
+            else if (elemento.tagName().equals("p")) {
+                String testoParagrafo = rimuoviNumeriTraParentesi(elemento.text());
+                contenuto.append(testoParagrafo).append("\n");
+            }
+        }
+
+        return contenuto.toString();
+    }
+
+    //metodo per estrarre la data nel formato per inserirla nel database
+    private static String estraiData(String data) {
+        //regex per prendere la prima data nel formato "gg mese aaaa"
+        Pattern pattern = Pattern.compile("(\\d{1,2})\\s+(\\w+)\\s+(\\d{4})");
+        Matcher matcher = pattern.matcher(data);
+
+        if (matcher.find()) {
+            String giorno = matcher.group(1); //giorno
+            String mese = matcher.group(2).toLowerCase(); //mese
+            String anno = matcher.group(3); //anno
+
+            //hashmap dei mesi per convertirli in formato numerico
+            HashMap<String, String> mesi = new HashMap<>();
+            mesi.put("gennaio", "01");
+            mesi.put("febbraio", "02");
+            mesi.put("marzo", "03");
+            mesi.put("aprile", "04");
+            mesi.put("maggio", "05");
+            mesi.put("giugno", "06");
+            mesi.put("luglio", "07");
+            mesi.put("agosto", "08");
+            mesi.put("settembre", "09");
+            mesi.put("ottobre", "10");
+            mesi.put("novembre", "11");
+            mesi.put("dicembre", "12");
+
+            String meseNumerico = mesi.get(mese);
+
+            //formatta la data in "YYYY-MM-DD"
+            return String.format("%s-%s-%02d", anno, meseNumerico, Integer.parseInt(giorno));
+        }
+
+        // Nessuna data trovata
+        return null;
     }
 
     //metodo per fare lo scraping del testo della canzone
@@ -240,28 +298,6 @@ public class WebScraper {
                 }
             }
         }
-    }
-
-    //metodo che permette di ottenere l'introduzione della pagina wikipedia desiderata
-    private static String getContenutoIntroduttivo(Document doc){
-        //ottiene il contenuto introduttivo fino alla sezione "biografia" oppure "storia"
-        Elements elementi = doc.select("div.mw-content-ltr.mw-parser-output").first().children(); //ottiene tutti i figli della sezione principale
-
-        StringBuilder contenuto = new StringBuilder();
-
-        //raccoglie dati specifici per artista/canzone/album
-        for (Element elemento : elementi) {
-            //fa lo scraping fino alla sezione "Biografia"
-            if (elemento.tagName().equals("div") && elemento.hasClass("mw-heading2")) {
-                break;
-            }
-            else if (elemento.tagName().equals("p")) {
-                String testoParagrafo = rimuoviNumeriTraParentesi(elemento.text());
-                contenuto.append(testoParagrafo).append("\n");
-            }
-        }
-
-        return contenuto.toString();
     }
 
     //metodo per rimuovere informazioni aggiuntive di wikipedia
@@ -305,7 +341,7 @@ public class WebScraper {
     }
 
     // TEST
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
         try {
             //DB_Manager dbManager = new DB_Manager();

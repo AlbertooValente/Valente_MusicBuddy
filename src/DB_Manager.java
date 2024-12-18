@@ -86,6 +86,7 @@ public class DB_Manager {
         return artista;
     }
 
+    //fallo by nome e artista
     public String getAlbumByNome(String nomeAlbum) throws SQLException {
         String sql = "SELECT * FROM Album WHERE nome = ?";
         String album = null;

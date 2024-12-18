@@ -46,12 +46,12 @@ public class APIGenius {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JsonObject dettagli = JsonParser.parseString(response.body()).getAsJsonObject();
+                JsonObject dettagli = JsonParser.parseString(response.body()).getAsJsonObject()
+                        .getAsJsonObject("response")
+                        .getAsJsonObject("song");
 
                 //estrai l'elemento media contenente i link di spotify e youtube
-                JsonArray media = dettagli.getAsJsonObject("response")
-                        .getAsJsonObject("song")
-                        .getAsJsonArray("media");
+                JsonArray media = dettagli.getAsJsonArray("media");
 
                 String spotifyUrl = null;
                 String youtubeUrl = null;
@@ -68,20 +68,19 @@ public class APIGenius {
                 }
 
                 //estrae il path per i testi
-                String lyricsPath = dettagli.getAsJsonObject("response")
-                        .getAsJsonObject("song")
-                        .get("path").getAsString();
+                String lyricsPath = dettagli.get("path").getAsString();
+
+                //estrae la data di pubblicazione della canzone
+                String data = dettagli.get("release_date").getAsString();
 
                 //estrae la descrizione
-                JsonObject descriptionDom = dettagli.getAsJsonObject("response")
-                        .getAsJsonObject("song")
-                        .getAsJsonObject("description")
+                JsonObject descriptionDom = dettagli.getAsJsonObject("description")
                         .getAsJsonObject("dom");    //il nodo dom contiene tutta la descrizione
 
                 String descrizione = estraiTestoDescrizione(descriptionDom);
 
                 // Restituisce i dati estratti
-                return new String[]{spotifyUrl, youtubeUrl, lyricsPath, descrizione};
+                return new String[]{spotifyUrl, youtubeUrl, lyricsPath, data,descrizione};
             } else {
                 System.err.println("Errore durante il recupero dei dettagli della canzone. Codice di stato: " + response.statusCode());
             }
