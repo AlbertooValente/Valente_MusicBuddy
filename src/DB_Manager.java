@@ -9,16 +9,24 @@ public class DB_Manager {
     private Connection connection;
 
     public DB_Manager() throws SQLException {
-        connection = DriverManager.getConnection(url, user, password);
+        try {
+            connection = DriverManager.getConnection(url, user, password);
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
     }
 
-    public void insertArtista(String nome, String biografia) throws SQLException {
+    public void insertArtista(String nome, String biografia) {
         String sql = "INSERT INTO Artista (nome, biografia) VALUES (?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nome);
             statement.setString(2, biografia);
             statement.executeUpdate();
+        }
+        catch (SQLException e){
+            e.printStackTrace();
         }
     }
 
@@ -32,6 +40,9 @@ public class DB_Manager {
             statement.setInt(4, idArtista);
             statement.setString(5, infoAlbum);
             statement.executeUpdate();
+        }
+        catch (SQLException e){
+            e.printStackTrace();
         }
     }
 
@@ -50,7 +61,12 @@ public class DB_Manager {
             statement.setString(9, infoCanzone);
             statement.executeUpdate();
         }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
     }
+
+    //MODIFICARE TUTTO
 
     public String getArtistaByNome(String nome) throws SQLException {
         String sql = "SELECT * FROM Artista WHERE nome = ?";

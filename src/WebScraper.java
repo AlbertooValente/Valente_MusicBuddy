@@ -83,7 +83,9 @@ public class WebScraper {
                 //stampa i dettagli dell'album
                 if (nomeAlbum != null && !linkAlbum.isEmpty()) {
                     //chiama la funzione per cercare alcuni dettagli dell'album (data di uscita e genere)
+                    System.out.println("ALBUM: " + nomeAlbum);
                     cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
+                    System.out.println("\n");
                 }
             }
         }
@@ -123,35 +125,40 @@ public class WebScraper {
         Element sezioneTracce = divContent.selectFirst("h2#Tracce");
 
         if (sezioneTracce == null) {
-            System.out.println("Nessuna sezione 'Album in studio' o 'Discografia' trovata");
+            System.out.println("Nessuna sezione 'Tracce' trovata");
             return;
         }
 
-        //seleziona il primo <ul> che segue il div che contiente l'elemento h2#Tracce
+        //seleziona il primo <ol> che segue il div che contiente l'elemento h2#Tracce
         Element albumList = sezioneTracce.parent().nextElementSibling();
 
-        while (albumList != null) {
-            // Se troviamo un elemento dl, controlliamo se contiene la parola "disco"
-            if (albumList.tagName().equals("dl")) {
-                String dlText = albumList.text().toLowerCase();
-                if (dlText.contains("disco")) {
-                    // Se c'è la parola "disco", continuiamo a cercare
-                    System.out.println("Sezione Disco trovata, continuando a leggere...");
-                } else {
-                    // Se il dl non contiene "disco", interrompiamo
-                    break;
-                }
-            }
+        //naviga attraverso gli elementi successivi fino a trovare il primo <ol>
+        while (albumList != null && !albumList.tagName().equals("ol")) {
+            albumList = albumList.nextElementSibling();
+        }
 
-            // Se l'elemento è un ul, estrai i titoli delle tracce
-            if (albumList.tagName().equals("ul")) {
-                Elements tracce = albumList.select("li");
+        while (albumList != null) {
+            if (albumList.tagName().equals("ol")) {     //se l'elemento è un ol, estrae i titoli delle tracce
+                Elements tracce = albumList.select("li i");
+
                 for (Element traccia : tracce) {
                     System.out.println("Titolo traccia: " + traccia.text());
                 }
             }
+            else if (albumList.tagName().equals("dl")) {
+                Elements dtElements = albumList.select("dt");
+                boolean contieneDiscoOLato = dtElements.stream()
+                        .anyMatch(dt -> dt.text().toLowerCase().contains("disco") || dt.text().toLowerCase().contains("lato"));
 
-            // Passa all'elemento successivo
+                if (!contieneDiscoOLato) {  //se il <dl> non contiene "disco" o "lato", interrompe il ciclo
+                    break;
+                }
+            }
+            else {  //se è qualsiasi altro elemento, interrompe il ciclo
+                break;
+            }
+
+            //passa all'elemento successivo
             albumList = albumList.nextElementSibling();
         }
 
