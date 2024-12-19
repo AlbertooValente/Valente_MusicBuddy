@@ -6,12 +6,19 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Time;
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
+    private static final DB_Manager dbManager = new DB_Manager();
+    private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(30); //pool per thread che gestiscono le canzoni
 
     //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
     public static void cercaArtista(String artista, String tipoRicerca) throws IOException {
@@ -38,7 +45,7 @@ public class WebScraper {
 
         //stampa il contenuto introduttivo
         if (contenutoIntroduttivo.length() > 0) {
-            //dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
+            dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
             cercaAlbum(doc, artista);
         }
         else{
@@ -86,10 +93,10 @@ public class WebScraper {
 
                 //stampa i dettagli dell'album
                 if (nomeAlbum != null && !linkAlbum.isEmpty()) {
-                    //chiama la funzione per cercare alcuni dettagli dell'album (data di uscita e genere)
                     System.out.println("ALBUM: " + nomeAlbum);
+
+                    //chiama il metodo per cercare alcuni dettagli dell'album (data di uscita e genere)
                     cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
-                    System.out.println("\n\n");
                 }
             }
         }
@@ -115,7 +122,7 @@ public class WebScraper {
         String info = getContenutoIntroduttivo(albumDoc);
 
         //inserisci i dettagli dell'album nel database
-        //dbManager.insertAlbum(nomeAlbum, dataUscita, genere, dbManager.getArtistaByNome(artista), info);
+        dbManager.insertAlbum(nomeAlbum, Date.valueOf(dataUscita), genere, dbManager.getIdArtista(artista), info);
 
 
         //CERCA ELENCO TRACCE
@@ -135,26 +142,34 @@ public class WebScraper {
             return;
         }
 
-        //seleziona il primo <ol> che segue il div che contiente l'elemento h2#Tracce
-        Element albumList = sezioneTracce.parent().nextElementSibling();
+        //seleziona il primo <ol> che segue il div che contiene l'elemento h2#Tracce
+        Element songList = sezioneTracce.parent().nextElementSibling();
 
         //naviga attraverso gli elementi successivi fino a trovare il primo <ol>
-        while (albumList != null && !albumList.tagName().equals("ol")) {
-            albumList = albumList.nextElementSibling();
+        while (songList != null && !songList.tagName().equals("ol")) {
+            songList = songList.nextElementSibling();
         }
 
-        while (albumList != null) {
-            if (albumList.tagName().equals("ol")) {     //se l'elemento è un ol, estrae i titoli delle tracce
-                Elements tracce = albumList.select("li i");
+        while (songList != null) {
+            if (songList.tagName().equals("ol")) {     //se l'elemento è un ol, estrae i titoli delle tracce
+                Elements tracce = songList.select("li i");
 
                 for (Element traccia : tracce) {
                     Element linkCanzone = traccia.parent().selectFirst("a[href]");
                     String hrefCanzone = (linkCanzone != null) ? linkCanzone.attr("href") : null;
-                    cercaInfoCanzone(traccia.text(), hrefCanzone, artista, dataUscita, genere);
+
+                    canzoneExecutor.submit(() -> {
+                        try {
+                            cercaInfoCanzone(nomeAlbum, traccia.text(), hrefCanzone, artista, genere);
+                        } catch (IOException e) {
+                            System.out.println("Errore durante lo scraping della canzone: " + traccia.text());
+                            e.printStackTrace();
+                        }
+                    });
                 }
             }
-            else if (albumList.tagName().equals("dl")) {
-                Elements dtElements = albumList.select("dt");
+            else if (songList.tagName().equals("dl")) {
+                Elements dtElements = songList.select("dt");
                 boolean contieneDiscoOLato = dtElements.stream()
                         .anyMatch(dt -> dt.text().toLowerCase().contains("disco") || dt.text().toLowerCase().contains("lato"));
 
@@ -167,11 +182,11 @@ public class WebScraper {
             }
 
             //passa all'elemento successivo
-            albumList = albumList.nextElementSibling();
+            songList = songList.nextElementSibling();
         }
     }
 
-    private static void cercaInfoCanzone(String titolo, String linkCanzone, String artista, String dataAlbum, String genereAlbum) throws IOException {
+    private static void cercaInfoCanzone(String nomeAlbum, String titolo, String linkCanzone, String artista, String genereAlbum) throws IOException {
         String query = titolo.replace(" ", "%20") + "%20" + artista.replace(" ", "%20");
         JsonObject searchResult = APIGenius.cercaCanzoneGenius(query);
 
@@ -202,50 +217,10 @@ public class WebScraper {
             testo = "Non disponibile";
         }
 
-        //tentativo di scraping della pagina Wikipedia per ottenere genere, data e durata della canzone
-        String genereCanzone = "";
-        String dataCanzone = "";
-        String durataCanzone = "";
-
-        try {
-            Document canzoneDoc = Jsoup.connect(baseUrlWiki + linkCanzone)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                    .get();
-
-            //cerca la data di pubblicazione specifica
-            Elements dataElement = canzoneDoc.select("tr:contains(Pubblicazione) td");
-
-            if (!dataElement.isEmpty()) {
-                dataCanzone = estraiData(dataElement.first().text());
-            }
-            else{
-                dataCanzone = dataAlbum;
-            }
-
-            //cerca il genere musicale
-            Elements genereElement = canzoneDoc.select("tr:contains(Genere) td");
-
-            if (!genereElement.isEmpty()) {
-                genereCanzone = rimuoviNumeriTraParentesi(genereElement.html()
-                        .replaceAll("<br ?/?>", "\n").replaceAll("\\<.*?\\>", "").trim());
-            }
-            else{
-                genereCanzone = genereAlbum;
-            }
-
-            //cerca la durata
-            Elements durataElement = canzoneDoc.select("tr:contains(Durata) td");
-
-            if(!durataElement.isEmpty()){
-                durataCanzone = durataElement.first().text();
-            }
-
-        } catch (IOException e) {
-            System.out.println("Errore durante il tentativo di scraping della pagina Wikipedia per la canzone: " + titolo);
+        //inserimento nel database
+        synchronized (dbManager){
+            dbManager.insertCanzone(titolo, testo, Date.valueOf(data), dbManager.getIDAlbum(nomeAlbum,artista), spotifyLink, youtubeLink, descrizione);
         }
-
-        // Inserimento nel database (da implementare)
-        // dbManager.insertCanzone(titolo, testo, dataUscita, genere, durata, dbManager.getAlbumByNomeAndArtista(nomeAlbum,artista), spotifyLink, youtubeLink, descrizione);
     }
 
     //metodo che permette di ottenere l'introduzione della pagina wikipedia desiderata
@@ -385,31 +360,19 @@ public class WebScraper {
         return null;
     }
 
+    public static void shutdownExecutors() {
+        canzoneExecutor.shutdown();
+    }
+
     // TEST
     public static void main(String[] args) {
-
         try {
-            //DB_Manager dbManager = new DB_Manager();
-
             cercaArtista("Pink Floyd", "artista");
-
-            //dbManager.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-        /*
-        try {
-            //DB_Manager dbManager = new DB_Manager();
-
-            cercaArtista(dbManager, "Pink Floyd", "artista");
-
-            //dbManager.close();
-        } catch (IOException | SQLException e) {
-            e.printStackTrace();
+        finally{
+            shutdownExecutors();
         }
-
-         */
     }
 }

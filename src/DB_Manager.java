@@ -8,7 +8,7 @@ public class DB_Manager {
 
     private Connection connection;
 
-    public DB_Manager() throws SQLException {
+    public DB_Manager() {
         try {
             connection = DriverManager.getConnection(url, user, password);
         }
@@ -18,7 +18,7 @@ public class DB_Manager {
     }
 
     public void insertArtista(String nome, String biografia) {
-        String sql = "INSERT INTO Artista (nome, biografia) VALUES (?, ?)";
+        String sql = "INSERT INTO artista (nome, biografia) VALUES (?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nome);
@@ -30,8 +30,8 @@ public class DB_Manager {
         }
     }
 
-    public void insertAlbum(String nome, Date dataUscita, String genere, int idArtista, String infoAlbum) throws SQLException {
-        String sql = "INSERT INTO Album (nome, dataUscita, genere, idArtista, infoAlbum) VALUES (?, ?, ?, ?, ?,)";
+    public void insertAlbum(String nome, Date dataUscita, String genere, int idArtista, String infoAlbum) {
+        String sql = "INSERT INTO album (nome, dataUscita, genere, idArtista, infoAlbum) VALUES (?, ?, ?, ?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nome);
@@ -46,19 +46,17 @@ public class DB_Manager {
         }
     }
 
-    public void insertCanzone(String titolo, String testo, Date dataUscita, String genere, Time durata, int idAlbum, String linkSpotify, String linkYoutube, String infoCanzone) throws SQLException {
-        String sql = "INSERT INTO Canzone (titolo, testo, dataUscita, genere, durata, idAlbum, linkSpotify, linkYoutube, infoCanzone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public void insertCanzone(String titolo, String testo, Date dataUscita, int idAlbum, String linkSpotify, String linkYoutube, String infoCanzone) {
+        String sql = "INSERT INTO canzone (titolo, testo, dataUscita, idAlbum, linkSpotify, linkYoutube, infoCanzone) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, titolo);
             statement.setString(2, testo);
             statement.setDate(3, dataUscita);
-            statement.setString(4, genere);
-            statement.setTime(5, durata);
-            statement.setInt(6, idAlbum);
-            statement.setString(7, linkSpotify);
-            statement.setString(8, linkYoutube);
-            statement.setString(9, infoCanzone);
+            statement.setInt(4, idAlbum);
+            statement.setString(5, linkSpotify);
+            statement.setString(6, linkYoutube);
+            statement.setString(7, infoCanzone);
             statement.executeUpdate();
         }
         catch (SQLException e){
@@ -66,7 +64,48 @@ public class DB_Manager {
         }
     }
 
-    //manca la relazione canzone e artista
+    //query per ottenere l'id dell'artista con quel nome
+    public int getIdArtista(String artista){
+        String sql = "SELECT idArtista FROM artista WHERE nome = ?";
+        int id = 0;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, artista);
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                id = rs.getInt("idArtista");
+            }
+        } catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return id;
+    }
+
+    //query per ottenere l'id dell'album
+    public int getIDAlbum(String nomeAlbum, String artista){
+        String sql = "SELECT al.idAlbum FROM album AS al " +
+                "JOIN artista AS ar ON ar.idArtista = al.idArtista " +
+                "WHERE al.nome = ? AND ar.nome = ?";
+
+        int id = 0;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, nomeAlbum);
+            statement.setString(2, artista);
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                id = rs.getInt("idAlbum");
+            }
+        } catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return id;
+    }
+
 
     //MODIFICARE TUTTO
 
