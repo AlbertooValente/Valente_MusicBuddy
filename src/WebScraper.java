@@ -107,7 +107,9 @@ public class WebScraper {
 
         //cerca il genere musicale
         Elements genereElement = albumDoc.select("tr:contains(Genere) td");
-        String genere = genereElement.isEmpty() ? "Genere non trovato" : genereElement.first().text();
+        String el = rimuoviNumeriTraParentesi(genereElement.html()
+                .replaceAll("<br ?/?>", "\n").replaceAll("\\<.*?\\>", "").trim());
+        String genere = el.isEmpty() ? "Genere non trovato" : el;
 
         //cerca info sull'album
         String info = getContenutoIntroduttivo(albumDoc);
@@ -146,7 +148,9 @@ public class WebScraper {
                 Elements tracce = albumList.select("li i");
 
                 for (Element traccia : tracce) {
-                    cercaInfoCanzone(traccia.text(), artista);
+                    Element linkCanzone = traccia.parent().selectFirst("a[href]");
+                    String hrefCanzone = (linkCanzone != null) ? linkCanzone.attr("href") : null;
+                    cercaInfoCanzone(traccia.text(), hrefCanzone, artista, dataUscita, genere);
                 }
             }
             else if (albumList.tagName().equals("dl")) {
@@ -167,7 +171,7 @@ public class WebScraper {
         }
     }
 
-    private static void cercaInfoCanzone(String titolo, String artista) throws IOException {
+    private static void cercaInfoCanzone(String titolo, String linkCanzone, String artista, String dataAlbum, String genereAlbum) throws IOException {
         String query = titolo.replace(" ", "%20") + "%20" + artista.replace(" ", "%20");
         JsonObject searchResult = APIGenius.cercaCanzoneGenius(query);
 
@@ -198,9 +202,50 @@ public class WebScraper {
             testo = "Non disponibile";
         }
 
+        //tentativo di scraping della pagina Wikipedia per ottenere genere, data e durata della canzone
+        String genereCanzone = "";
+        String dataCanzone = "";
+        String durataCanzone = "";
+
+        try {
+            Document canzoneDoc = Jsoup.connect(baseUrlWiki + linkCanzone)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                    .get();
+
+            //cerca la data di pubblicazione specifica
+            Elements dataElement = canzoneDoc.select("tr:contains(Pubblicazione) td");
+
+            if (!dataElement.isEmpty()) {
+                dataCanzone = estraiData(dataElement.first().text());
+            }
+            else{
+                dataCanzone = dataAlbum;
+            }
+
+            //cerca il genere musicale
+            Elements genereElement = canzoneDoc.select("tr:contains(Genere) td");
+
+            if (!genereElement.isEmpty()) {
+                genereCanzone = rimuoviNumeriTraParentesi(genereElement.html()
+                        .replaceAll("<br ?/?>", "\n").replaceAll("\\<.*?\\>", "").trim());
+            }
+            else{
+                genereCanzone = genereAlbum;
+            }
+
+            //cerca la durata
+            Elements durataElement = canzoneDoc.select("tr:contains(Durata) td");
+
+            if(!durataElement.isEmpty()){
+                durataCanzone = durataElement.first().text();
+            }
+
+        } catch (IOException e) {
+            System.out.println("Errore durante il tentativo di scraping della pagina Wikipedia per la canzone: " + titolo);
+        }
 
         // Inserimento nel database (da implementare)
-        // dbManager.insertCanzone(titolo, testo, data, , , dbManager.getAlbumByNomeAndArtista(nomeAlbum,artista), spotifyLink, youtubeLink, descrizione);
+        // dbManager.insertCanzone(titolo, testo, dataUscita, genere, durata, dbManager.getAlbumByNomeAndArtista(nomeAlbum,artista), spotifyLink, youtubeLink, descrizione);
     }
 
     //metodo che permette di ottenere l'introduzione della pagina wikipedia desiderata

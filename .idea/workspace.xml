@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="35532f0a-0a7c-439c-b52f-fa6b2eddd58d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/APIGenius.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/APIGenius.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/DB_Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/DB_Manager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraper.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -72,13 +70,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Application.WebScraper">
-    <configuration name="APIGenius" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="APIGenius" />
-      <module name="Valente_MusicBuddy" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="Main" />
       <module name="Valente_MusicBuddy" />
@@ -93,10 +84,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="Application.Main" />
+      <item itemvalue="Application.WebScraper" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Application.WebScraper" />
-        <item itemvalue="Application.APIGenius" />
         <item itemvalue="Application.Main" />
       </list>
     </recent_temporary>
@@ -143,7 +137,8 @@
       <workItem from="1734506970113" duration="763000" />
       <workItem from="1734519063120" duration="1582000" />
       <workItem from="1734520722012" duration="1346000" />
-      <workItem from="1734541247682" duration="4966000" />
+      <workItem from="1734541247682" duration="5044000" />
+      <workItem from="1734605654086" duration="1661000" />
     </task>
     <servers />
   </component>
