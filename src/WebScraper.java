@@ -7,8 +7,6 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,7 +19,7 @@ public class WebScraper {
     private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(40); //pool per thread che gestiscono le canzoni
 
     //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
-    public static void cercaArtista(String artista, String tipoRicerca) throws IOException {
+    public static void cercaArtista(String artista) throws IOException {
         String url = baseUrlWiki + "/wiki/" + artista.replace(" ", "_");
 
         Document doc = Jsoup.connect(url)
@@ -30,8 +28,8 @@ public class WebScraper {
 
         //controlla se la pagina è una disambiguazione
         if (isDisambiguationPage(doc)) {
-            //trova il link più rilevante per il tipo di ricerca (artista, canzone, album)
-            String relevantLink = findRelevantLink(doc, tipoRicerca);
+            //trova il link più rilevante per artista
+            String relevantLink = findRelevantLink(doc, "artista");
 
             if (relevantLink != null) {
                 //riprova lo scraping con il link specifico

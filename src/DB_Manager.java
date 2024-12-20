@@ -1,5 +1,7 @@
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 public class DB_Manager {
     private static final String url = "jdbc:mysql://localhost:3306/musicbuddy";
@@ -18,9 +20,9 @@ public class DB_Manager {
     }
 
     public void insertArtista(String nome, String biografia) {
-        String sql = "INSERT INTO artista (nome, biografia) VALUES (?, ?)";
+        String query = "INSERT INTO artista (nome, biografia) VALUES (?, ?)";
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, nome);
             statement.setString(2, biografia);
             statement.executeUpdate();
@@ -31,9 +33,9 @@ public class DB_Manager {
     }
 
     public void insertAlbum(String nome, Date dataUscita, String genere, int idArtista, String infoAlbum) {
-        String sql = "INSERT INTO album (nome, dataUscita, genere, idArtista, infoAlbum) VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT INTO album (nome, dataUscita, genere, idArtista, infoAlbum) VALUES (?, ?, ?, ?, ?)";
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, nome);
             statement.setDate(2, dataUscita);
             statement.setString(3, genere);
@@ -47,9 +49,9 @@ public class DB_Manager {
     }
 
     public void insertCanzone(String titolo, String testo, Date dataUscita, int idAlbum, String linkSpotify, String linkYoutube, String infoCanzone) {
-        String sql = "INSERT INTO canzone (titolo, testo, dataUscita, idAlbum, linkSpotify, linkYoutube, infoCanzone) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO canzone (titolo, testo, dataUscita, idAlbum, linkSpotify, linkYoutube, infoCanzone) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, titolo);
             statement.setString(2, testo);
             statement.setDate(3, dataUscita);
@@ -66,10 +68,10 @@ public class DB_Manager {
 
     //query per ottenere l'id dell'artista con quel nome
     public int getIdArtista(String artista){
-        String sql = "SELECT idArtista FROM artista WHERE nome = ?";
+        String query = "SELECT idArtista FROM artista WHERE nome = ?";
         int id = 0;
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, artista);
             ResultSet rs = statement.executeQuery();
 
@@ -85,13 +87,13 @@ public class DB_Manager {
 
     //query per ottenere l'id dell'album
     public int getIDAlbum(String nomeAlbum, String artista){
-        String sql = "SELECT al.idAlbum FROM album AS al " +
+        String query = "SELECT al.idAlbum FROM album AS al " +
                 "JOIN artista AS ar ON ar.idArtista = al.idArtista " +
                 "WHERE al.nome = ? AND ar.nome = ?";
 
         int id = 0;
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, nomeAlbum);
             statement.setString(2, artista);
             ResultSet rs = statement.executeQuery();
@@ -108,11 +110,12 @@ public class DB_Manager {
 
 
     public String getArtistaByNome(String nome) throws SQLException {
-        String sql = "SELECT * FROM Artista WHERE nome = ?";
+        String query = "SELECT * FROM Artista WHERE nome = ?";
         String artista = null;
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, nome);
+
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     String nomeArtista = resultSet.getString("nome");
@@ -126,16 +129,39 @@ public class DB_Manager {
         return artista;
     }
 
-    //fallo by nome e artista
-    public String getAlbumByNome(String nomeAlbum) throws SQLException {
-        String sql = "SELECT * FROM Album WHERE nome = ?";
+
+    public String getAlbumByNome(String nomeAlbum, String artista) throws SQLException {
+        String sql = "SELECT al.nome AS albumNome, al.dataUscita, al.genere, ar.nome AS artistaNome, al.infoAlbum " +
+                "FROM album AS al " +
+                "JOIN artista AS ar ON ar.idArtista = al.idArtista " +
+                "WHERE al.nome = ? AND ar.nome = ?";
+
         String album = null;
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, nomeAlbum);
+            statement.setString(2, artista);
+
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    album = resultSet.getString("nome") + " - " + resultSet.getString("genere") + " - " + resultSet.getDate("dataUscita");
+                    String albumNome = resultSet.getString("albumNome");
+
+                    //formattazione della data
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                    String dataUscita = dateFormat.format(resultSet.getDate("dataUscita"));
+
+                    String genere = resultSet.getString("genere");
+                    String artistaNome = resultSet.getString("artistaNome");
+                    String infoAlbum = resultSet.getString("infoAlbum");
+
+                    album = String.format(
+                            "*Titolo:* %s%n" +
+                            "*Artista:* %s%n" +
+                            "*Data uscita:* %s%n" +
+                            "*Genere:*%n%s%n%n" +
+                            "*Dettagli*%n%s",
+                            albumNome, artistaNome, dataUscita, genere, infoAlbum
+                    );
                 }
             }
         }
@@ -143,20 +169,44 @@ public class DB_Manager {
         return album;
     }
 
-    public String getCanzoneByNome(String nomeCanzone) throws SQLException {
-        String sql = "SELECT * FROM Canzone WHERE titolo = ?";
-        String canzone = null;
+    public List<String> getCanzoneByNome(String nomeCanzone, String artista) throws SQLException {
+        String query = "SELECT c.titolo, c.dataUscita, c.infoCanzone, c.linkSpotify, c.linkYoutube " +
+                "FROM canzone AS c " +
+                "JOIN album AS al ON c.idAlbum = al.idAlbum " +
+                "JOIN artista AS ar ON al.idArtista = ar.idArtista" +
+                "WHERE c.titolo = ? AND ar.nome = ?";
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        List<String> canzoneInfo = null;
+
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, nomeCanzone);
+            statement.setString(2, artista);
+
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    canzone = resultSet.getString("titolo") + " - " + resultSet.getString("genere") + " - " + resultSet.getDate("dataUscita") + " - " + resultSet.getTime("durata");
+                    String titolo = (resultSet.getString("titolo"));
+
+                    //formatta la data
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                    String dataUscita = dateFormat.format(resultSet.getDate("dataUscita"));
+
+                    String infoCanzone = resultSet.getString("infoCanzone");
+
+                    String canzone = String.format(
+                            "*Titolo:* %s%n" +
+                                    "*Data uscita:* %s%n%n" +
+                                    "*Dettagli:*%n%s",
+                            titolo, dataUscita, infoCanzone
+                    );
+
+                    canzoneInfo.add(canzone);
+                    canzoneInfo.add(resultSet.getString("linkSpotify"));
+                    canzoneInfo.add(resultSet.getString("linkYoutube"));
                 }
             }
         }
 
-        return canzone;
+        return canzoneInfo;
     }
 
     //temporanea

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -38,7 +39,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 comandoCerca(chatId, receivedText);
             }
             else {
-                sendMessage(chatId, "Comando non riconosciuto. Usa /start o /cerca per iniziare.");
+                inviaMessaggio(chatId, "Comando non riconosciuto. Usa /start o /cerca per iniziare.");
             }
         }
     }
@@ -49,7 +50,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 "Sono qui per aiutarti a scoprire nuove canzoni, artisti e album!\n" +
                 "Puoi usare il comando /cerca per esplorare il nostro database.";
 
-        sendMessage(chatId, message);
+        inviaMessaggio(chatId, message);
     }
 
     //metodo che gestisce il comando cerca
@@ -57,14 +58,14 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         String[] parts = receivedText.split(" ", 2);
 
         if (parts.length < 2) {
-            sendMessage(chatId, "Specifica il tipo di ricerca:\n/cerca artista\n/cerca album\n/cerca canzone");
+            inviaMessaggio(chatId, "Specifica il tipo di ricerca:\n/cerca artista\n/cerca album\n/cerca canzone");
             return;
         }
 
         String tipo = parts[1].toLowerCase();
 
         if (!tipo.equals("artista") && !tipo.equals("album") && !tipo.equals("canzone")) {
-            sendMessage(chatId, "Tipo non riconosciuto! Usa: artista, album o canzone");
+            inviaMessaggio(chatId, "Tipo non riconosciuto! Usa: artista, album o canzone");
             return;
         }
 
@@ -72,13 +73,13 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         userStates.put(chatId, new String[]{tipo, null, null}); //tipo, nome elemento, artista
 
         if(tipo.equals("artista")){
-            sendMessage(chatId, "Scrivi il nome dell'" + tipo + " che vuoi cercare");
+            inviaMessaggio(chatId, "Scrivi il nome dell'" + tipo + " che vuoi cercare");
         }
         else if(tipo.equals("canzone")){
-            sendMessage(chatId, "Scrivi il titolo della " + tipo + " che vuoi cercare");
+            inviaMessaggio(chatId, "Scrivi il titolo della " + tipo + " che vuoi cercare");
         }
         else{
-            sendMessage(chatId, "Scrivi il titolo dell'" + tipo + " che vuoi cercare");
+            inviaMessaggio(chatId, "Scrivi il titolo dell'" + tipo + " che vuoi cercare");
         }
     }
 
@@ -96,7 +97,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 cercaArtista(chatId, state[1]);
             }
             else{
-                sendMessage(chatId, "Ora scrivi il nome dell'artista");
+                inviaMessaggio(chatId, "Ora scrivi il nome dell'artista");
             }
 
         } else if (artista == null) {   //salva il nome dell'artista se si sta cercando una canzone o un album
@@ -105,7 +106,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             //esegue la ricerca
             if (tipo.equals("album")) {
-                //cercaAlbum(chatId, nomeElemento, state[2]);
+                cercaAlbum(chatId, nomeElemento, state[2]);
             } else if (tipo.equals("canzone")) {
                 //cercaCanzone(chatId, nomeElemento, state[2]);
             }
@@ -126,78 +127,85 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             String result = dbManager.getArtistaByNome(artista);
 
             if (result != null) {
-                sendMessage(chatId, result);
+                inviaMessaggio(chatId, result);
                 return;
             }
 
             //se non lo trova, prova a fare scraping
-            sendMessage(chatId, "Sto cercando ulteriori informazioni su " + artista + "...");
-            WebScraper.cercaArtista(artista, "artista");
+            inviaMessaggio(chatId, "Sto cercando ulteriori informazioni su " + artista + "...");
+            WebScraper.cercaArtista(artista);
 
             //controlla di nuovo il database dopo lo scraping
             result = dbManager.getArtistaByNome(artista);
 
             if (result != null) {
-                sendMessage(chatId, result);
+                inviaMessaggio(chatId, result);
             } else {
-                sendMessage(chatId, "Artista non trovato!");
+                inviaMessaggio(chatId, "Artista non trovato!");
             }
         } catch (IOException e) {
-            sendMessage(chatId, "Errore durante la ricerca sul web per l'artista");
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web per l'artista");
             e.printStackTrace();
 
         } catch (SQLException e) {
-            sendMessage(chatId, "Errore nella ricerca dell'artista nel database");
+            inviaMessaggio(chatId, "Errore nella ricerca dell'artista nel database");
             e.printStackTrace();
         }
     }
 
-    /*
+    //metodo per la ricerca dell'album
     private void cercaAlbum(String chatId, String album, String artista) {
         try {
-            int idArtista = dbManager.getIdArtista(artista);
-            if (idArtista == 0) {
-                sendMessage(chatId, "Artista non trovato per l'album.");
+            String result = dbManager.getAlbumByNome(album, artista);
+
+            if (result != null) {
+                inviaMessaggio(chatId, result);
                 return;
             }
 
-            String result = dbManager.getAlbumByNome(album);
+            //se non lo trova, prova a fare scraping
+            inviaMessaggio(chatId, "Sto cercando informazioni su " + album + "...");
+            WebScraper.cercaArtista(artista);
+
+            //controlla di nuovo il database dopo lo scraping
+            result = dbManager.getAlbumByNome(album, artista);
+
             if (result != null) {
-                sendMessage(chatId, "Album trovato:\n" + result);
+                inviaMessaggio(chatId, result);
             } else {
-                sendMessage(chatId, "Album non trovato.");
+                inviaMessaggio(chatId, "Album non trovato!");
             }
+        } catch (IOException e) {
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web per l'album");
+            e.printStackTrace();
         } catch (SQLException e) {
-            sendMessage(chatId, "Errore nella ricerca dell'album.");
+            inviaMessaggio(chatId, "Errore nella ricerca dell'album!");
             e.printStackTrace();
         }
     }
-    */
 
-    /*
     private void cercaCanzone(String chatId, String canzone, String artista) {
         try {
-            int idArtista = dbManager.getIdArtista(artista);
-            if (idArtista == 0) {
-                sendMessage(chatId, "Artista non trovato per la canzone.");
+            List<String> result = dbManager.getCanzoneByNome(canzone, artista);
+
+            if (!result.isEmpty()) {
+                inviaMessaggio(chatId, result);
                 return;
             }
 
-            String result = dbManager.getCanzoneByNome(canzone);
             if (result != null) {
-                sendMessage(chatId, "Canzone trovata:\n" + result);
+                inviaMessaggio(chatId, "Canzone trovata:\n" + result);
             } else {
-                sendMessage(chatId, "Canzone non trovata.");
+                inviaMessaggio(chatId, "Canzone non trovata.");
             }
         } catch (SQLException e) {
-            sendMessage(chatId, "Errore nella ricerca della canzone.");
+            inviaMessaggio(chatId, "Errore nella ricerca della canzone.");
             e.printStackTrace();
         }
     }
-     */
 
     //metodo che gestisce l'invio dei messaggi di risposta
-    private void sendMessage(String chatId, String message) {
+    private void inviaMessaggio(String chatId, String message) {
         String mess = escapeMarkdownV2(message);
         SendMessage sendMessage = new SendMessage(chatId, mess);
         sendMessage.setParseMode("MarkdownV2");     //imposta il tipo di parsing MarkdownV2
@@ -207,6 +215,10 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+    }
+
+    private void inviaMessaggioMarkup(){
+        
     }
 
     //per evitare il parsing di tutti i principali caratteri speciali
