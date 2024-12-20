@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
     private static final DB_Manager dbManager = new DB_Manager();
-    private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(30); //pool per thread che gestiscono le canzoni
+    private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(40); //pool per thread che gestiscono le canzoni
 
     //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
     public static void cercaArtista(String artista, String tipoRicerca) throws IOException {
@@ -47,6 +47,7 @@ public class WebScraper {
         if (contenutoIntroduttivo.length() > 0) {
             dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
             cercaAlbum(doc, artista);
+            System.out.println("FINE RICERCA!");
         }
         else{
             System.out.println("Non è stato trovato un contenuto introduttivo");
@@ -93,8 +94,6 @@ public class WebScraper {
 
                 //stampa i dettagli dell'album
                 if (nomeAlbum != null && !linkAlbum.isEmpty()) {
-                    System.out.println("ALBUM: " + nomeAlbum);
-
                     //chiama il metodo per cercare alcuni dettagli dell'album (data di uscita e genere)
                     cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
                 }
@@ -362,17 +361,5 @@ public class WebScraper {
 
     public static void shutdownExecutors() {
         canzoneExecutor.shutdown();
-    }
-
-    // TEST
-    public static void main(String[] args) {
-        try {
-            cercaArtista("Pink Floyd", "artista");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        finally{
-            shutdownExecutors();
-        }
     }
 }

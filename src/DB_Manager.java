@@ -107,8 +107,6 @@ public class DB_Manager {
     }
 
 
-    //MODIFICARE TUTTO
-
     public String getArtistaByNome(String nome) throws SQLException {
         String sql = "SELECT * FROM Artista WHERE nome = ?";
         String artista = null;
@@ -117,7 +115,10 @@ public class DB_Manager {
             statement.setString(1, nome);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    artista = resultSet.getString("nome") + " - " + resultSet.getString("biografia");
+                    String nomeArtista = resultSet.getString("nome");
+                    String biografia = resultSet.getString("biografia");
+
+                    artista = String.format("*Artista:* %s%n%n*Biografia*%n%s", nomeArtista, biografia);
                 }
             }
         }
