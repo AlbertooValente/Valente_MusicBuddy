@@ -2,6 +2,9 @@ import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -10,6 +13,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -108,7 +112,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             if (tipo.equals("album")) {
                 cercaAlbum(chatId, nomeElemento, state[2]);
             } else if (tipo.equals("canzone")) {
-                //cercaCanzone(chatId, nomeElemento, state[2]);
+                cercaCanzone(chatId, nomeElemento, state[2]);
             }
         }
     }
@@ -144,7 +148,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 inviaMessaggio(chatId, "Artista non trovato!");
             }
         } catch (IOException e) {
-            inviaMessaggio(chatId, "Errore durante la ricerca sul web per l'artista");
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web dell'artista");
             e.printStackTrace();
 
         } catch (SQLException e) {
@@ -176,7 +180,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 inviaMessaggio(chatId, "Album non trovato!");
             }
         } catch (IOException e) {
-            inviaMessaggio(chatId, "Errore durante la ricerca sul web per l'album");
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web dell'album");
             e.printStackTrace();
         } catch (SQLException e) {
             inviaMessaggio(chatId, "Errore nella ricerca dell'album!");
@@ -184,22 +188,33 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         }
     }
 
+    //metodo per la ricerca della canzone
     private void cercaCanzone(String chatId, String canzone, String artista) {
         try {
             List<String> result = dbManager.getCanzoneByNome(canzone, artista);
 
             if (!result.isEmpty()) {
-                inviaMessaggio(chatId, result);
+                inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
                 return;
             }
 
+            //se non trova la canzone, prova a fare scraping
+            inviaMessaggio(chatId, "Sto cercando informazioni su " + canzone + "...");
+            WebScraper.cercaArtista(artista);
+
+            //controlla di nuovo il database dopo lo scraping
+            result = dbManager.getCanzoneByNome(canzone, artista);
+
             if (result != null) {
-                inviaMessaggio(chatId, "Canzone trovata:\n" + result);
+                inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
             } else {
-                inviaMessaggio(chatId, "Canzone non trovata.");
+                inviaMessaggio(chatId, "Canzone non trovata!");
             }
+        } catch (IOException e) {
+            inviaMessaggio(chatId, "Errore nella ricerca durante la ricerca sul web della canzone!");
+            e.printStackTrace();
         } catch (SQLException e) {
-            inviaMessaggio(chatId, "Errore nella ricerca della canzone.");
+            inviaMessaggio(chatId, "Errore nella ricerca della canzone!");
             e.printStackTrace();
         }
     }
@@ -217,12 +232,48 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         }
     }
 
-    private void inviaMessaggioMarkup(){
-        
+    private void inviaMessaggioMarkup(String chatId, String message, String linkSpotify, String linkYoutube){
+        //crea la lista di bottoni sotto il messaggio
+        List<InlineKeyboardRow> rowsInline = new ArrayList<>();
+
+        //spotify
+        if (!linkSpotify.equals("Non disponibile")) {
+            InlineKeyboardButton spotifyButton = new InlineKeyboardButton("Ascolta su Spotify 🎧");
+            spotifyButton.setUrl(linkSpotify);
+
+            InlineKeyboardRow spotifyRow = new InlineKeyboardRow();
+            spotifyRow.add(spotifyButton);
+            rowsInline.add(spotifyRow);
+        }
+
+        //youtube
+        if (!linkYoutube.equals("Non disponibile")) {
+            InlineKeyboardButton youtubeButton = new InlineKeyboardButton("Ascolta su YouTube 📺");
+            youtubeButton.setUrl(linkYoutube);
+
+            InlineKeyboardRow youtubeRow = new InlineKeyboardRow();
+            youtubeRow.add(youtubeButton);
+            rowsInline.add(youtubeRow);
+        }
+
+        //crea il markup con la lista di righe
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(rowsInline);
+
+        //invia il messaggio con il markup
+        String mess = escapeMarkdownV2(message);
+        SendMessage sendMessage = new SendMessage(chatId, mess);
+        sendMessage.setParseMode("MarkdownV2");
+        sendMessage.setReplyMarkup(markup);
+
+        try {
+            telegramClient.execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     //per evitare il parsing di tutti i principali caratteri speciali
     private String escapeMarkdownV2(String text) {
-        return text.replaceAll("([\\\\+\\-_\\[\\]()`>#+!|{}.])", "\\\\$1");
+        return text.replaceAll("([\\\\\\[_\\]`()~>#|+=\\-{}.!])", "\\\\$1");
     }
 }

@@ -154,12 +154,11 @@ public class DB_Manager {
                     String artistaNome = resultSet.getString("artistaNome");
                     String infoAlbum = resultSet.getString("infoAlbum");
 
-                    album = String.format(
-                            "*Titolo:* %s%n" +
-                            "*Artista:* %s%n" +
-                            "*Data uscita:* %s%n" +
-                            "*Genere:*%n%s%n%n" +
-                            "*Dettagli*%n%s",
+                    album = String.format("*Titolo:* %s%n" +
+                                "*Artista:* %s%n" +
+                                "*Data uscita:* %s%n" +
+                                "*Genere:*%n%s%n%n" +
+                                "*Dettagli*%n%s",
                             albumNome, artistaNome, dataUscita, genere, infoAlbum
                     );
                 }
@@ -173,13 +172,13 @@ public class DB_Manager {
         String query = "SELECT c.titolo, c.dataUscita, c.infoCanzone, c.linkSpotify, c.linkYoutube " +
                 "FROM canzone AS c " +
                 "JOIN album AS al ON c.idAlbum = al.idAlbum " +
-                "JOIN artista AS ar ON al.idArtista = ar.idArtista" +
-                "WHERE c.titolo = ? AND ar.nome = ?";
+                "JOIN artista AS ar ON al.idArtista = ar.idArtista " +
+                "WHERE c.titolo LIKE ? AND ar.nome = ?";
 
-        List<String> canzoneInfo = null;
+        List<String> canzoneInfo = new ArrayList<>();
 
         try (PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(1, nomeCanzone);
+            statement.setString(1, "%" + nomeCanzone + "%");
             statement.setString(2, artista);
 
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -192,10 +191,14 @@ public class DB_Manager {
 
                     String infoCanzone = resultSet.getString("infoCanzone");
 
-                    String canzone = String.format(
-                            "*Titolo:* %s%n" +
+                    //metto questo perchè nell'api di genius non tutte le canzoni hanno una sezione con descrizione/informazioni
+                    if(infoCanzone.equals("?")){
+                        infoCanzone = "Informazioni sulla canzone non disponibili";
+                    }
+
+                    String canzone = String.format("*Titolo:* %s%n" +
                                     "*Data uscita:* %s%n%n" +
-                                    "*Dettagli:*%n%s",
+                                    "*Dettagli (in inglese):*%n%s",
                             titolo, dataUscita, infoCanzone
                     );
 
@@ -266,12 +269,5 @@ public class DB_Manager {
         }
 
         return canzoni;
-    }
-
-    //chiude la connessione
-    public void close() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
-        }
     }
 }

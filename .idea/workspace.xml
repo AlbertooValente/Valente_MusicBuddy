@@ -8,7 +8,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/DB_Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/DB_Manager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/MusicBuddy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/MusicBuddy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraper.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,6 +132,7 @@
       <workItem from="1734618179343" duration="311000" />
       <workItem from="1734618541896" duration="4017000" />
       <workItem from="1734711211962" duration="8246000" />
+      <workItem from="1734787034059" duration="3486000" />
     </task>
     <servers />
   </component>
