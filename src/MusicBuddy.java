@@ -37,7 +37,11 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             //verifica se il messaggio è il comando /start
             if (receivedText.equals("/start")) {
-                comandoStart(chatId);
+                String message = "Ciao! Benvenuto su MusicBuddy!\n" +
+                        "Sono qui per aiutarti a scoprire nuove canzoni, artisti e album!\n" +
+                        "Puoi usare il comando /cerca per esplorare il nostro database.";
+
+                inviaMessaggio(chatId, message);
             }
             else if (receivedText.startsWith("/cerca")) {
                 comandoCerca(chatId, receivedText);
@@ -49,19 +53,19 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                 userStates.put(chatId, new String[]{null, null, null});
                 inviaMessaggio(chatId, "Scrivi il titolo della canzone che vuoi cercare");
             }
+            else if(receivedText.startsWith("/help")){
+                String message = "LISTA COMANDI:\n" +
+                        "/cerca - Cerca informazioni su una canzone, un artista o un album\n" +
+                        "/testo - Restituisce il testo di una canzone specifica\n" +
+                        "/curiosita - Restituisce una curiosità musicale giornaliera\n" +
+                        "/suggerisci - Suggerisce canzoni o playlist in base ai tuoi interessi musicali";
+
+                inviaMessaggio(chatId, message);
+            }
             else {
                 inviaMessaggio(chatId, "Comando non riconosciuto! Usa /help per sapere quali comandi utilizzare");
             }
         }
-    }
-
-    //metodo che gestisce il comando start: invia un messaggio di benvenuto
-    private void comandoStart(String chatId) {
-        String message = "Ciao! Benvenuto su MusicBuddy!\n" +
-                "Sono qui per aiutarti a scoprire nuove canzoni, artisti e album!\n" +
-                "Puoi usare il comando /cerca per esplorare il nostro database.";
-
-        inviaMessaggio(chatId, message);
     }
 
     //metodo che gestisce il comando cerca
