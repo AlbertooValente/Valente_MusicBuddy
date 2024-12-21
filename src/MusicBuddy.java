@@ -120,21 +120,47 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             state[2] = addMaiuscole(receivedText);
             userStates.remove(chatId); //rimuove lo stato dell'utente
 
-            //esegue la ricerca
-            if (tipo == null) {
-                cercaTesto(chatId, nomeElemento, state[2]);
-            } else if (tipo.equals("album")) {
-                cercaAlbum(chatId, nomeElemento, state[2]);
-            } else if (tipo.equals("canzone")) {
-                cercaCanzone(chatId, nomeElemento, state[2]);
+            try{
+                String result = dbManager.getArtistaByNome(state[2]);
+
+                //se l'artista non è nel database, fa prima lo scraping
+                if (result.equals("")) {
+                    inviaMessaggio(chatId, "Ricerca in corso...");
+                    WebScraper.cercaArtista(state[2]);
+                }
+
+                //esegue la ricerca
+                if (tipo == null) {
+                    cercaTesto(chatId, nomeElemento, state[2]);
+                } else if (tipo.equals("album")) {
+                    cercaAlbum(chatId, nomeElemento, state[2]);
+                } else if (tipo.equals("canzone")) {
+                    cercaCanzone(chatId, nomeElemento, state[2]);
+                }
+
+            } catch(SQLException e){
+                e.printStackTrace();
+            } catch (IOException e) {
+                inviaMessaggio(chatId, "Errore nella ricerca! Controllare di aver scritto correttamente il nome dell'artista!");
+                e.printStackTrace();
             }
         }
     }
 
     //metodo che mette le maiuscole ad ogni parola separata da uno spazio
     private String addMaiuscole(String input) {
+        //lista di alcune eccezioni
+        List<String> eccezioni = Arrays.asList("AC/DC", "DJ");
+
         return Arrays.stream(input.split(" "))
-                .map(word -> word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase())
+                .map(word -> {
+                    //se la parola è nelle eccezioni, viene lasciata invariata
+                    if (eccezioni.contains(word.toUpperCase())) {
+                        return word;
+                    }
+
+                    return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
+                })
                 .collect(Collectors.joining(" "));
     }
 
@@ -144,19 +170,19 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             //cerca nel database se c'è già l'artista
             String result = dbManager.getArtistaByNome(artista);
 
-            if (result != null) {
+            if (!result.equals("")) {
                 inviaMessaggio(chatId, result);
                 return;
             }
 
             //se non lo trova, prova a fare scraping
-            inviaMessaggio(chatId, "Sto cercando ulteriori informazioni su " + artista + "...");
+            inviaMessaggio(chatId, "Ricerca in corso...");
             WebScraper.cercaArtista(artista);
 
             //controlla di nuovo il database dopo lo scraping
             result = dbManager.getArtistaByNome(artista);
 
-            if (result != null) {
+            if (!result.equals("")) {
                 inviaMessaggio(chatId, result);
             } else {
                 inviaMessaggio(chatId, "Artista non trovato!");
@@ -176,26 +202,11 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         try {
             String result = dbManager.getAlbumByNome(album, artista);
 
-            if (result != null) {
-                inviaMessaggio(chatId, result);
-                return;
-            }
-
-            //se non lo trova, prova a fare scraping
-            inviaMessaggio(chatId, "Sto cercando informazioni su " + album + "...");
-            WebScraper.cercaArtista(artista);
-
-            //controlla di nuovo il database dopo lo scraping
-            result = dbManager.getAlbumByNome(album, artista);
-
-            if (result != null) {
+            if (!result.equals("")) {
                 inviaMessaggio(chatId, result);
             } else {
                 inviaMessaggio(chatId, "Album non trovato!");
             }
-        } catch (IOException e) {
-            inviaMessaggio(chatId, "Errore durante la ricerca sul web dell'album");
-            e.printStackTrace();
         } catch (SQLException e) {
             inviaMessaggio(chatId, "Errore nella ricerca dell'album!");
             e.printStackTrace();
@@ -209,24 +220,9 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (!result.isEmpty()) {
                 inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
-                return;
-            }
-
-            //se non trova la canzone, prova a fare scraping
-            inviaMessaggio(chatId, "Sto cercando informazioni su " + canzone + "...");
-            WebScraper.cercaArtista(artista);
-
-            //controlla di nuovo il database dopo lo scraping
-            result = dbManager.getCanzoneByNome(canzone, artista);
-
-            if (result != null) {
-                inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
             } else {
                 inviaMessaggio(chatId, "Canzone non trovata!");
             }
-        } catch (IOException e) {
-            inviaMessaggio(chatId, "Errore durante la ricerca sul web della canzone!");
-            e.printStackTrace();
         } catch (SQLException e) {
             inviaMessaggio(chatId, "Errore nella ricerca della canzone!");
             e.printStackTrace();
@@ -238,7 +234,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         try {
             String result = dbManager.getTestoCanzone(canzone, artista);
 
-            if (!result.isEmpty()) {
+            if (!result.equals("")) {
                 inviaMessaggio(chatId, result);
                 return;
             }
@@ -250,7 +246,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             //controlla di nuovo il database dopo lo scraping
             result = dbManager.getTestoCanzone(canzone, artista);
 
-            if (result != null) {
+            if (result.equals("")) {
                 inviaMessaggio(chatId, result);
             } else {
                 inviaMessaggio(chatId, "Testo della canzone non trovato!");
@@ -338,6 +334,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         }
     }
 
+    //metodo che gestisce l'invio del messaggio di risposta con i link di spotify e youtube
     private void inviaMessaggioMarkup(String chatId, String message, String linkSpotify, String linkYoutube) {
         //crea la lista di bottoni sotto il messaggio
         List<InlineKeyboardRow> rowsInline = new ArrayList<>();

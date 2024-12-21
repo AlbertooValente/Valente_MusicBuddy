@@ -11,13 +11,14 @@ import java.sql.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
     private static final DB_Manager dbManager = new DB_Manager();
-    private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(40); //pool per thread che gestiscono le canzoni
+    private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(50); //pool per thread che gestiscono le canzoni
 
     //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
     public static void cercaArtista(String artista) throws IOException {
@@ -108,7 +109,7 @@ public class WebScraper {
 
         //cerca la data completa di uscita
         Elements dataElement = albumDoc.select("tr:contains(Pubblicazione) td");
-        String dataUscita = dataElement.isEmpty() ? "Data non trovata" : estraiData(dataElement.first().text());
+        String dataUscita = dataElement.isEmpty() ? "Data non trovata" : convertiData(dataElement.first().text());
 
         //cerca il genere musicale
         Elements genereElement = albumDoc.select("tr:contains(Genere) td");
@@ -121,7 +122,6 @@ public class WebScraper {
 
         //inserisci i dettagli dell'album nel database
         dbManager.insertAlbum(nomeAlbum, Date.valueOf(dataUscita), genere, dbManager.getIdArtista(artista), info);
-
 
         //CERCA ELENCO TRACCE
         //trova il div che contiene la sezione "Tracce"
@@ -153,12 +153,9 @@ public class WebScraper {
                 Elements tracce = songList.select("li i");
 
                 for (Element traccia : tracce) {
-                    Element linkCanzone = traccia.parent().selectFirst("a[href]");
-                    String hrefCanzone = (linkCanzone != null) ? linkCanzone.attr("href") : null;
-
                     canzoneExecutor.submit(() -> {
                         try {
-                            cercaInfoCanzone(nomeAlbum, traccia.text(), hrefCanzone, artista, genere);
+                            cercaInfoCanzone(nomeAlbum, traccia.text(), artista);
                         } catch (IOException e) {
                             System.out.println("Errore durante lo scraping della canzone: " + traccia.text());
                             e.printStackTrace();
@@ -182,9 +179,20 @@ public class WebScraper {
             //passa all'elemento successivo
             songList = songList.nextElementSibling();
         }
+
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) canzoneExecutor;
+
+        //aspetta che tutti i thread nel pool abbiano finito, ovvero quando il numero di thread attivi è 0
+        while (executor.getActiveCount() > 0) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
-    private static void cercaInfoCanzone(String nomeAlbum, String titolo, String linkCanzone, String artista, String genereAlbum) throws IOException {
+    private static void cercaInfoCanzone(String nomeAlbum, String titolo, String artista) throws IOException {
         String query = titolo.replace(" ", "%20") + "%20" + artista.replace(" ", "%20");
         JsonObject searchResult = APIGenius.cercaCanzoneGenius(query);
 
@@ -244,16 +252,33 @@ public class WebScraper {
     }
 
     //metodo per estrarre la data nel formato per inserirla nel database
-    private static String estraiData(String data) {
-        //regex per prendere la prima data nel formato "gg mese aaaa"
-        Pattern pattern = Pattern.compile("(\\d{1,2})\\s+(\\w+)\\s+(\\d{4})");
-        Matcher matcher = pattern.matcher(data);
+    private static String convertiData(String data) {
+        data = data.replace("°", "").replace("º", "");  //la data del primo del mese su wikipedia viene scritta 1° e devo togliere °
 
-        if (matcher.find()) {
-            String giorno = matcher.group(1); //giorno
-            String mese = matcher.group(2).toLowerCase(); //mese
-            String anno = matcher.group(3); //anno
+        //per evitare casi particolare in cui le date sono in questi formati: 29 luglio 1979[1], 28 aprile; 18 giugno (edizione australiana)[1] 1978
+        //cerca il primo giorno e mese
+        Pattern patternData = Pattern.compile("(\\d{1,2})\\s+(\\w+)");
+        Matcher matcherData = patternData.matcher(data);
 
+        String giorno = null;
+        String mese = null;
+
+        if (matcherData.find()) {
+            giorno = matcherData.group(1);
+            mese = matcherData.group(2).toLowerCase();
+        }
+
+        //cerca l'anno
+        Pattern patternAnno = Pattern.compile("(\\d{4})(?=.*\\[|)");
+        Matcher matcherAnno = patternAnno.matcher(data);
+
+        String anno = null;
+
+        if (matcherAnno.find()) {
+            anno = matcherAnno.group(1);  // Anno
+        }
+
+        if (giorno != null && mese != null && anno != null) {
             //hashmap dei mesi per convertirli in formato numerico
             HashMap<String, String> mesi = new HashMap<>();
             mesi.put("gennaio", "01");
@@ -321,7 +346,6 @@ public class WebScraper {
     //metodo per rimuovere informazioni aggiuntive di wikipedia
     private static String rimuoviNumeriTraParentesi(String testo) {
         testo = testo.replaceAll("\\[.*?\\]", "");  //rimuove i numeri tra parentesi quadre
-        testo = testo.replaceAll("AFI:\\s*;\\s*", "");  //rimuove le pronunce in alfabeto fonetico internazionale
         return testo;
     }
 
