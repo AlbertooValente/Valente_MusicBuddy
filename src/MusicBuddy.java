@@ -42,8 +42,15 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
             else if (receivedText.startsWith("/cerca")) {
                 comandoCerca(chatId, receivedText);
             }
+            else if(receivedText.startsWith("/suggerisci")){
+
+            }
+            else if(receivedText.startsWith("/testo")){
+                userStates.put(chatId, new String[]{null, null, null});
+                inviaMessaggio(chatId, "Scrivi il titolo della canzone che vuoi cercare");
+            }
             else {
-                inviaMessaggio(chatId, "Comando non riconosciuto. Usa /start o /cerca per iniziare.");
+                inviaMessaggio(chatId, "Comando non riconosciuto! Usa /help per sapere quali comandi utilizzare");
             }
         }
     }
@@ -93,25 +100,29 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         String nomeElemento = state[1];
         String artista = state[2];
 
-        if (nomeElemento == null) {     //salva il nome dell'elemento (artista, canzone o album)
+        if (nomeElemento == null) {     //salva il nome dell'artista/il titolo dell'album/canzone
             state[1] = addMaiuscole(receivedText);
 
-            if(tipo.equals("artista")){
+            if(tipo != null && tipo.equals("artista")){
                 userStates.remove(chatId);
                 cercaArtista(chatId, state[1]);
             }
             else{
                 inviaMessaggio(chatId, "Ora scrivi il nome dell'artista");
             }
-
-        } else if (artista == null) {   //salva il nome dell'artista se si sta cercando una canzone o un album
+        }
+        else if (artista == null) {   //salva il nome dell'artista se si sta cercando una canzone o un album
             state[2] = addMaiuscole(receivedText);
             userStates.remove(chatId); //rimuove lo stato dell'utente
 
             //esegue la ricerca
-            if (tipo.equals("album")) {
+            if (tipo == null){
+                cercaTesto(chatId, nomeElemento, state[2]);
+            }
+            else if (tipo.equals("album")) {
                 cercaAlbum(chatId, nomeElemento, state[2]);
-            } else if (tipo.equals("canzone")) {
+            }
+            else if (tipo.equals("canzone")) {
                 cercaCanzone(chatId, nomeElemento, state[2]);
             }
         }
@@ -144,7 +155,8 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggio(chatId, result);
-            } else {
+            }
+            else {
                 inviaMessaggio(chatId, "Artista non trovato!");
             }
         } catch (IOException e) {
@@ -176,7 +188,8 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggio(chatId, result);
-            } else {
+            }
+            else {
                 inviaMessaggio(chatId, "Album non trovato!");
             }
         } catch (IOException e) {
@@ -207,14 +220,48 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
-            } else {
+            }
+            else {
                 inviaMessaggio(chatId, "Canzone non trovata!");
             }
         } catch (IOException e) {
-            inviaMessaggio(chatId, "Errore nella ricerca durante la ricerca sul web della canzone!");
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web della canzone!");
             e.printStackTrace();
         } catch (SQLException e) {
             inviaMessaggio(chatId, "Errore nella ricerca della canzone!");
+            e.printStackTrace();
+        }
+    }
+
+    //metodo per la ricerca del testo di una canzone
+    private void cercaTesto(String chatId, String canzone, String artista){
+        try{
+            String result = dbManager.getTestoCanzone(canzone, artista);
+
+            if (!result.isEmpty()) {
+                inviaMessaggio(chatId, result);
+                return;
+            }
+
+            //se non trova la canzone, prova a fare scraping
+            inviaMessaggio(chatId, "Sto cercando informazioni sul testo di " + canzone + "...");
+            WebScraper.cercaArtista(artista);
+
+            //controlla di nuovo il database dopo lo scraping
+            result = dbManager.getTestoCanzone(canzone, artista);
+
+            if (result != null) {
+                inviaMessaggio(chatId, result);
+            }
+            else {
+                inviaMessaggio(chatId, "Testo della canzone non trovato!");
+            }
+
+        } catch (IOException e) {
+            inviaMessaggio(chatId, "Errore durante la ricerca sul web del testo della canzone!");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            inviaMessaggio(chatId, "Errore nella ricerca del testo della canzone!");
             e.printStackTrace();
         }
     }
