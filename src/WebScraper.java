@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 public class WebScraper {
     private static final String baseUrlWiki = "https://it.wikipedia.org";
     private static final DB_Manager dbManager = new DB_Manager();
+    private static final ExecutorService albumExecutor = Executors.newFixedThreadPool(5);
     private static final ExecutorService canzoneExecutor = Executors.newFixedThreadPool(50); //pool per thread che gestiscono le canzoni
 
     //metodo per fare lo scraping di un artista (cantante, band) su wikipedia
@@ -41,6 +42,21 @@ public class WebScraper {
             }
         }
 
+        //verifica se la pagina è quella giusta
+        if (!isGruppoMusicale(doc)) {
+            //se non è un gruppo musicale, cerca il link corretto
+            String newUrl = cercaLinkCorretto(artista);
+
+            if (newUrl != null) {
+                doc = Jsoup.connect(newUrl)
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                        .get();
+            } else {
+                System.out.println("Non è stato possibile trovare un link alla pagina del gruppo musicale.");
+                return;
+            }
+        }
+
         String contenutoIntroduttivo = getContenutoIntroduttivo(doc);
 
         //stampa il contenuto introduttivo
@@ -48,6 +64,7 @@ public class WebScraper {
             dbManager.insertArtista(artista, contenutoIntroduttivo.toString());
             cercaAlbum(doc, artista);
             System.out.println("FINE RICERCA!");
+            shutdownExecutors();
         }
         else{
             System.out.println("Non è stato trovato un contenuto introduttivo");
@@ -95,7 +112,25 @@ public class WebScraper {
                 //stampa i dettagli dell'album
                 if (nomeAlbum != null && !linkAlbum.isEmpty()) {
                     //chiama il metodo per cercare alcuni dettagli dell'album (data di uscita e genere)
-                    cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
+                    albumExecutor.submit(() -> {
+                        try{
+                            cercaDettagliAlbum(baseUrlWiki + linkAlbum, nomeAlbum, artista);
+                        } catch (IOException e) {
+                            System.out.println("Errore durante lo scraping della canzone: " + nomeAlbum);
+                            e.printStackTrace();
+                        }
+                    });
+                }
+            }
+
+            ThreadPoolExecutor executor = (ThreadPoolExecutor) albumExecutor;
+
+            //aspetta che tutti i thread nel pool abbiano finito, ovvero quando il numero di thread attivi è 0
+            while (executor.getActiveCount() > 0) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -382,7 +417,52 @@ public class WebScraper {
         return null;
     }
 
+    //metodo per verificare se la pagina riguarda effettivamente un gruppo musicale
+    private static boolean isGruppoMusicale(Document doc) {
+        Elements content = doc.select("div.mw-content-ltr.mw-parser-output p");
+
+        for (Element p : content) {
+            String text = p.text().toLowerCase();
+
+            //verifica se il testo contiene parole chiave indicative di un gruppo musicale
+            if (text.contains("gruppo musicale") || text.contains("band")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    //metodo per cercare la pagina corretta tra quelle possibili (gruppo musicale o artista)
+    private static String cercaLinkCorretto(String artista) {
+        String[] possibleUrls = {
+                "https://it.wikipedia.org/wiki/" + artista.replace(" ", "_") + "_(gruppo_musicale)",
+                "https://it.wikipedia.org/wiki/" + artista.replace(" ", "_") + "_(artista)"
+        };
+
+        for (String url : possibleUrls) {
+            try {
+                //effettua una richiesta alla pagina
+                Document doc = Jsoup.connect(url)
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                        .get();
+
+                //verifica se la pagina è quella giusta (se contiene informazioni sul gruppo musicale)
+                if (isGruppoMusicale(doc)) {
+                    return url;  //se è il gruppo musicale, restituisci l'URL
+                }
+            } catch (IOException e) {
+                //se la richiesta fallisce (ad esempio se la pagina non esiste), viene ignorata
+                System.out.println("La pagina non esiste per l'URL: " + url);
+            }
+        }
+
+        return null;
+    }
+
+
     public static void shutdownExecutors() {
         canzoneExecutor.shutdown();
+        albumExecutor.shutdown();
     }
 }

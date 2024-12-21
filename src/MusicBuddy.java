@@ -150,7 +150,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
     //metodo che mette le maiuscole ad ogni parola separata da uno spazio
     private String addMaiuscole(String input) {
         //lista di alcune eccezioni
-        List<String> eccezioni = Arrays.asList("AC/DC", "DJ");
+        List<String> eccezioni = Arrays.asList("AC/DC", "DJ", "OF", "A");
 
         return Arrays.stream(input.split(" "))
                 .map(word -> {

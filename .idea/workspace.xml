@@ -41,7 +41,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.APIGenius.executor": "Run",
-    "Application.Main.executor": "Run",
+    "Application.Main.executor": "Debug",
     "Application.WebScraper.executor": "Run",
     "Application.WebScraperWikipedia.executor": "Run",
     "Downloaded.Files.Path.Enabled": "false",
@@ -135,7 +135,7 @@
       <workItem from="1734787034059" duration="3868000" />
       <workItem from="1734790941466" duration="127000" />
       <workItem from="1734791087782" duration="79000" />
-      <workItem from="1734791178206" duration="9512000" />
+      <workItem from="1734791178206" duration="12368000" />
     </task>
     <servers />
   </component>
