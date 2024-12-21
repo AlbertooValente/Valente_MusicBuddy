@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="35532f0a-0a7c-439c-b52f-fa6b2eddd58d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/MusicBuddy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/MusicBuddy.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Config.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Config.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/WebScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/WebScraper.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -41,7 +41,8 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.APIGenius.executor": "Run",
-    "Application.Main.executor": "Debug",
+    "Application.APISpotify.executor": "Run",
+    "Application.Main.executor": "Run",
     "Application.WebScraper.executor": "Run",
     "Application.WebScraperWikipedia.executor": "Run",
     "Downloaded.Files.Path.Enabled": "false",
@@ -70,7 +71,14 @@
       <recent name="" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Application.APISpotify">
+    <configuration name="APISpotify" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="APISpotify" />
+      <module name="Valente_MusicBuddy" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="Main" />
       <module name="Valente_MusicBuddy" />
@@ -80,6 +88,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.APISpotify" />
         <item itemvalue="Application.Main" />
       </list>
     </recent_temporary>
@@ -135,7 +144,7 @@
       <workItem from="1734787034059" duration="3868000" />
       <workItem from="1734790941466" duration="127000" />
       <workItem from="1734791087782" duration="79000" />
-      <workItem from="1734791178206" duration="12368000" />
+      <workItem from="1734791178206" duration="15281000" />
     </task>
     <servers />
   </component>

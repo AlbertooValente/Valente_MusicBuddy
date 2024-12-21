@@ -460,7 +460,6 @@ public class WebScraper {
         return null;
     }
 
-
     public static void shutdownExecutors() {
         canzoneExecutor.shutdown();
         albumExecutor.shutdown();

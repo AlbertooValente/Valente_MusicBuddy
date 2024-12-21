@@ -28,4 +28,17 @@ public class Config {
 
         return properties.getProperty("API_GENIUS_TOKEN");
     }
+
+    public static String getAPISpotifyToken() {
+        Properties properties = new Properties();
+
+        try (FileInputStream input = new FileInputStream("config.properties")) {
+            properties.load(input);
+        }
+        catch (IOException e){
+            System.out.println("Errore nella lettura del file 'config.properties'");
+        }
+
+        return properties.getProperty("API_SPOTIFY_TOKEN");
+    }
 }
