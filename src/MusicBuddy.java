@@ -10,6 +10,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -42,18 +45,20 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                         "Puoi usare il comando /cerca per esplorare il nostro database.";
 
                 inviaMessaggio(chatId, message);
-            }
-            else if (receivedText.startsWith("/cerca")) {
-                comandoCerca(chatId, receivedText);
-            }
-            else if(receivedText.startsWith("/suggerisci")){
 
-            }
-            else if(receivedText.startsWith("/testo")){
+            } else if (receivedText.startsWith("/cerca")) {
+                comandoCerca(chatId, receivedText);
+
+            } else if (receivedText.startsWith("/testo")) {
                 userStates.put(chatId, new String[]{null, null, null});
                 inviaMessaggio(chatId, "Scrivi il titolo della canzone che vuoi cercare");
-            }
-            else if(receivedText.startsWith("/help")){
+
+            } else if (receivedText.startsWith("/curiosita")) {
+                comandoCuriosita(chatId);
+
+            } else if (receivedText.startsWith("/suggerisci")) {
+
+            } else if (receivedText.startsWith("/help")) {
                 String message = "LISTA COMANDI:\n" +
                         "/cerca - Cerca informazioni su una canzone, un artista o un album\n" +
                         "/testo - Restituisce il testo di una canzone specifica\n" +
@@ -61,15 +66,15 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
                         "/suggerisci - Suggerisce canzoni o playlist in base ai tuoi interessi musicali";
 
                 inviaMessaggio(chatId, message);
-            }
-            else {
+
+            } else {
                 inviaMessaggio(chatId, "Comando non riconosciuto! Usa /help per sapere quali comandi utilizzare");
             }
         }
     }
 
     //metodo che gestisce il comando cerca
-    private void comandoCerca(String chatId, String receivedText){
+    private void comandoCerca(String chatId, String receivedText) {
         String[] parts = receivedText.split(" ", 2);
 
         if (parts.length < 2) {
@@ -87,13 +92,11 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         //inizializza lo stato dell'utente
         userStates.put(chatId, new String[]{tipo, null, null}); //tipo, nome elemento, artista
 
-        if(tipo.equals("artista")){
+        if (tipo.equals("artista")) {
             inviaMessaggio(chatId, "Scrivi il nome dell'" + tipo + " che vuoi cercare");
-        }
-        else if(tipo.equals("canzone")){
+        } else if (tipo.equals("canzone")) {
             inviaMessaggio(chatId, "Scrivi il titolo della " + tipo + " che vuoi cercare");
-        }
-        else{
+        } else {
             inviaMessaggio(chatId, "Scrivi il titolo dell'" + tipo + " che vuoi cercare");
         }
     }
@@ -107,26 +110,22 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         if (nomeElemento == null) {     //salva il nome dell'artista/il titolo dell'album/canzone
             state[1] = addMaiuscole(receivedText);
 
-            if(tipo != null && tipo.equals("artista")){
+            if (tipo != null && tipo.equals("artista")) {
                 userStates.remove(chatId);
                 cercaArtista(chatId, state[1]);
-            }
-            else{
+            } else {
                 inviaMessaggio(chatId, "Ora scrivi il nome dell'artista");
             }
-        }
-        else if (artista == null) {   //salva il nome dell'artista se si sta cercando una canzone o un album
+        } else if (artista == null) {   //salva il nome dell'artista se si sta cercando una canzone o un album
             state[2] = addMaiuscole(receivedText);
             userStates.remove(chatId); //rimuove lo stato dell'utente
 
             //esegue la ricerca
-            if (tipo == null){
+            if (tipo == null) {
                 cercaTesto(chatId, nomeElemento, state[2]);
-            }
-            else if (tipo.equals("album")) {
+            } else if (tipo.equals("album")) {
                 cercaAlbum(chatId, nomeElemento, state[2]);
-            }
-            else if (tipo.equals("canzone")) {
+            } else if (tipo.equals("canzone")) {
                 cercaCanzone(chatId, nomeElemento, state[2]);
             }
         }
@@ -159,8 +158,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggio(chatId, result);
-            }
-            else {
+            } else {
                 inviaMessaggio(chatId, "Artista non trovato!");
             }
         } catch (IOException e) {
@@ -192,8 +190,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggio(chatId, result);
-            }
-            else {
+            } else {
                 inviaMessaggio(chatId, "Album non trovato!");
             }
         } catch (IOException e) {
@@ -224,8 +221,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggioMarkup(chatId, result.get(0), result.get(1), result.get(2));
-            }
-            else {
+            } else {
                 inviaMessaggio(chatId, "Canzone non trovata!");
             }
         } catch (IOException e) {
@@ -238,8 +234,8 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
     }
 
     //metodo per la ricerca del testo di una canzone
-    private void cercaTesto(String chatId, String canzone, String artista){
-        try{
+    private void cercaTesto(String chatId, String canzone, String artista) {
+        try {
             String result = dbManager.getTestoCanzone(canzone, artista);
 
             if (!result.isEmpty()) {
@@ -256,8 +252,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
 
             if (result != null) {
                 inviaMessaggio(chatId, result);
-            }
-            else {
+            } else {
                 inviaMessaggio(chatId, "Testo della canzone non trovato!");
             }
 
@@ -267,6 +262,66 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         } catch (SQLException e) {
             inviaMessaggio(chatId, "Errore nella ricerca del testo della canzone!");
             e.printStackTrace();
+        }
+    }
+
+    //metodo che gestisce il comando curiosita
+    private void comandoCuriosita(String chatId){
+        //ottiene la data di oggi
+        LocalDate oggi = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String dataFormattata = oggi.format(formatter);
+
+        //formattazione della data per il messaggio
+        String message = "";
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM");
+        String dataFormattataMessage = dateFormat.format(java.sql.Date.valueOf(oggi));
+
+        // Inizializza le informazioni sugli album e le canzoni
+        List<String> albumMessaggi = new ArrayList<>();
+        List<String> canzoniMessaggi = new ArrayList<>();
+
+        try {
+            //cerca album usciti oggi
+            List<String> albumOggi = dbManager.getAlbumByDataUscita(dataFormattata);
+
+            //se ci sono album, aggiungi le info dell'album al messaggio
+            if (!albumOggi.isEmpty()) {
+                for (String album : albumOggi) {
+                    albumMessaggi.add(String.format("*Oggi (%s) è uscito l'album:*\n%s", dataFormattataMessage, album));
+                }
+            }
+
+            //cerca canzoni uscite oggi
+            List<String> canzoniOggi = dbManager.getCanzoneByDataUscita(dataFormattata);
+
+            //aggiunge le canzoni che non appartengono già agli album inseriti nel messaggio
+            for (String canzone : canzoniOggi) {
+                if (!albumMessaggi.contains(canzone)) {
+                    canzoniMessaggi.add(String.format("*Oggi (%s) è uscita la canzone:*\n%s", dataFormattataMessage, canzone));
+                }
+            }
+
+            //se non trova nulla, invia un messaggio alternativo
+            if (albumMessaggi.isEmpty() && canzoniMessaggi.isEmpty()) {
+                message = "Oggi non ci sono curiosità, riprova domani!";
+            } else {
+                //aggiunge gli album al messaggio
+                for (String album : albumMessaggi) {
+                    message += album + "\n\n";
+                }
+
+                //aggiunge le canzoni al messaggio
+                for (String canzone : canzoniMessaggi) {
+                    message += canzone + "\n\n";
+                }
+            }
+
+            // Invia il messaggio
+            inviaMessaggio(chatId, message);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            inviaMessaggio(chatId, "Si è verificato un errore nel recuperare le curiosità!");
         }
     }
 
@@ -283,7 +338,7 @@ public class MusicBuddy implements LongPollingSingleThreadUpdateConsumer {
         }
     }
 
-    private void inviaMessaggioMarkup(String chatId, String message, String linkSpotify, String linkYoutube){
+    private void inviaMessaggioMarkup(String chatId, String message, String linkSpotify, String linkYoutube) {
         //crea la lista di bottoni sotto il messaggio
         List<InlineKeyboardRow> rowsInline = new ArrayList<>();
 

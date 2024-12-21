@@ -173,6 +173,7 @@ public class DB_Manager {
         return album;
     }
 
+
     public List<String> getCanzoneByNome(String titoloCanzone, String artista) throws SQLException {
         String query = "SELECT c.titolo, c.dataUscita, c.infoCanzone, c.linkSpotify, c.linkYoutube " +
                 "FROM canzone AS c " +
@@ -217,6 +218,7 @@ public class DB_Manager {
         return canzoneInfo;
     }
 
+
     public String getTestoCanzone(String titoloCanzone, String artista) throws SQLException{
         String query = "SELECT c.titolo, c.testo " +
                 "FROM canzone AS c " +
@@ -245,5 +247,79 @@ public class DB_Manager {
         }
 
         return testo;
+    }
+
+
+    public List<String> getAlbumByDataUscita(String dataUscita) throws SQLException {
+        String query = "SELECT al.nome AS albumNome, al.dataUscita, al.genere, ar.nome AS artistaNome, al.infoAlbum " +
+                "FROM album AS al " +
+                "JOIN artista AS ar ON ar.idArtista = al.idArtista " +
+                "WHERE al.dataUscita = ?";
+
+        List<String> albumInfo = new ArrayList<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, dataUscita);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                String albumNome = resultSet.getString("albumNome");
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                String dataUscitaFormatted = dateFormat.format(resultSet.getDate("dataUscita"));
+
+                String genere = resultSet.getString("genere");
+                String artistaNome = resultSet.getString("artistaNome");
+                String infoAlbum = resultSet.getString("infoAlbum");
+
+                String album = String.format("*Titolo:* %s%n" +
+                                "*Artista:* %s%n" +
+                                "*Data uscita:* %s%n" +
+                                "*Genere:* %s%n%n" +
+                                "*Dettagli*%n%s",
+                        albumNome, artistaNome, dataUscitaFormatted, genere, infoAlbum);
+                albumInfo.add(album);
+            }
+        }
+
+        return albumInfo;
+    }
+
+
+    public List<String> getCanzoneByDataUscita(String dataUscita) throws SQLException {
+        String query = "SELECT c.titolo, c.dataUscita, c.infoCanzone, c.linkSpotify, c.linkYoutube " +
+                "FROM canzone AS c " +
+                "JOIN album AS al ON c.idAlbum = al.idAlbum " +
+                "JOIN artista AS ar ON al.idArtista = ar.idArtista " +
+                "WHERE c.dataUscita = ?";
+
+        List<String> canzoneInfo = new ArrayList<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, dataUscita);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                String titolo = resultSet.getString("titolo");
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                String dataUscitaFormatted = dateFormat.format(resultSet.getDate("dataUscita"));
+
+                String infoCanzone = resultSet.getString("infoCanzone");
+
+                //mettiamo questo perchè non tutte le canzoni hanno descrizioni
+                if (infoCanzone.equals("?")) {
+                    infoCanzone = "Informazioni sulla canzone non disponibili";
+                }
+
+                String canzone = String.format("*Titolo:* %s%n" +
+                                "*Data uscita:* %s%n%n" +
+                                "*Dettagli (in inglese)*%n%s",
+                        titolo, dataUscitaFormatted, infoCanzone);
+                canzoneInfo.add(canzone);
+            }
+        }
+
+        return canzoneInfo;
     }
 }
